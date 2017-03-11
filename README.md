@@ -1,25 +1,20 @@
-# goose
+# mig
 
-Goose is a database migration tool. Manage your database's evolution by creating incremental SQL files or Go functions.
+mig is a database migration tool. Manage your database's evolution by creating incremental SQL files.
 
-[![GoDoc Widget]][GoDoc] [![Travis Widget]][Travis]
+[![GoDoc Widget]][GoDoc]
 
 ### Goals of this fork
 
-This is a fork of https://bitbucket.org/liamstask/goose with the following changes:
-- No config files
-- Default goose binary can migrate SQL files only
-- We dropped building .go files on-the-fly in favor of the below
-- Import `github.com/pressly/goose` package
-    - To run complex Go migrations with your own `*sql.DB` connection via `*sql.Tx` transactions
-    - The pkg doesn't register any SQL drivers anymore (no `panic()` driver conflicts with your codebase!)
-    - The pkg doesn't have any vendor dependencies anymore
+This is a fork of https://github.com/pressly/goose with some major reworks to 
+the project structure, many necessary bug fixes and general improvements to
+better suit the Go abcweb framework https://github.com/nullbio/abcweb --
+although feel free to use this migration tool as a standalone or in your own 
+projects even if you do not use abcweb.
 
 # Install
 
-    $ go get -u github.com/pressly/goose/cmd/goose
-
-This will install the `goose` binary to your `$GOPATH/bin` directory.
+    $ go get -u github.com/nullbio/mig/...
 
 # Usage
 
@@ -199,5 +194,3 @@ Licensed under [MIT License](./LICENSE)
 
 [GoDoc]: https://godoc.org/github.com/pressly/goose
 [GoDoc Widget]: https://godoc.org/github.com/pressly/goose?status.svg
-[Travis]: https://travis-ci.org/pressly/goose
-[Travis Widget]: https://travis-ci.org/pressly/goose.svg?branch=master

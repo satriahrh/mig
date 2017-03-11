@@ -1,4 +1,4 @@
 .DS_Store
-cmd/goose/goose*
+cmd/mig/mig
 *.swp
 *.test
