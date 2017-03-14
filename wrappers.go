@@ -17,14 +17,6 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-type errNoMigration struct {
-	version int64
-}
-
-func (e errNoMigration) Error() string {
-	return fmt.Sprintf("no migration %d", e.version)
-}
-
 // IsNoMigrationError returns true if the error type is of
 // errNoMigration, indicating that there is no migration to run
 func IsNoMigrationError(err error) bool {
@@ -118,6 +110,77 @@ func DownAll(driver string, conn string, dir string) (int, error) {
 		Log.Write([]byte(fmt.Sprintf("Success %v\n", name)))
 		count++
 	}
+}
+
+// Up migrates to the highest version available
+func Up(driver string, conn string, dir string) (int, error) {
+	count := 0
+
+	db, err := sql.Open(driver, conn)
+	if err != nil {
+		return count, err
+	}
+
+	err = setDialect(driver)
+	if err != nil {
+		return count, err
+	}
+
+	migrations, err := collectMigrations(viper.GetString("dir"), 0, math.MaxInt64)
+	if err != nil {
+		return count, err
+	}
+
+	for {
+		currentVersion, err := getVersion(db)
+		if err != nil {
+			return count, err
+		}
+
+		next, err := migrations.next(currentVersion)
+		// no migrations left to run
+		if err != nil {
+			return count, nil
+		}
+
+		name, err := next.up(db)
+		if err != nil {
+			return count, err
+		}
+
+		Log.Write([]byte(fmt.Sprintf("Success %v\n", name)))
+		count++
+	}
+}
+
+// UpOne migrates one version
+func UpOne(driver string, conn string, dir string) (name string, err error) {
+	db, err := sql.Open(driver, conn)
+	if err != nil {
+		return "", err
+	}
+
+	err = setDialect(driver)
+	if err != nil {
+		return "", err
+	}
+
+	currentVersion, err := getVersion(db)
+	if err != nil {
+		return "", err
+	}
+
+	migrations, err := collectMigrations(viper.GetString("dir"), 0, math.MaxInt64)
+	if err != nil {
+		return "", err
+	}
+
+	next, err := migrations.next(currentVersion)
+	if err != nil {
+		return "", errNoMigration{}
+	}
+
+	return next.up(db)
 }
 
 // Redo re-runs the latest migration.

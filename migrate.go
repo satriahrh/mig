@@ -18,6 +18,18 @@ var (
 
 var Log io.Writer
 
+type errNoMigration struct {
+	version int64
+}
+
+func (e errNoMigration) Error() string {
+	if e.version > 0 {
+		return fmt.Sprintf("no migration %d", e.version)
+	} else {
+		return "no migrations to execute"
+	}
+}
+
 type migrations []*migration
 
 func init() {

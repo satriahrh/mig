@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 
 	"github.com/nullbio/mig"
@@ -17,70 +16,53 @@ var upCmd = &cobra.Command{
 	RunE:    upRunE,
 }
 
+var upOneCmd = &cobra.Command{
+	Use:     "upone",
+	Short:   "Migrate the database by one version",
+	Long:    "Migrate the database by one version",
+	Example: `mig upone mysql "user:password@/dbname"`,
+	RunE:    upOneRunE,
+}
+
 func init() {
 	upCmd.Flags().StringP("dir", "d", ".", "directory with migration files")
+	upOneCmd.Flags().StringP("dir", "d", ".", "directory with migration files")
 
 	rootCmd.AddCommand(upCmd)
+	rootCmd.AddCommand(upOneCmd)
+
 	upCmd.PreRun = func(*cobra.Command, []string) {
 		viper.BindPFlags(upCmd.Flags())
+	}
+	upOneCmd.PreRun = func(*cobra.Command, []string) {
+		viper.BindPFlags(upOneCmd.Flags())
 	}
 }
 
 func upRunE(cmd *cobra.Command, args []string) error {
-	return nil
+	driver, conn, err := getConnArgs(args)
+	if err != nil {
+		return err
+	}
+
+	count, err := mig.Up(driver, conn)
+	if err != nil {
+		fmt.Printf("Success   %d migrations\n", count)
+	}
+
+	return err
 }
 
-func Up(db *sql.DB, dir string) error {
-	migrations, err := mig.CollectMigrations(dir, minVersion, maxVersion)
+func upOneRunE(cmd *cobra.Command, args []string) error {
+	driver, conn, err := getConnArgs(args)
 	if err != nil {
 		return err
 	}
 
-	for {
-		current, err := mig.GetDBVersion(db)
-		if err != nil {
-			return err
-		}
-
-		next, err := migrations.Next(current)
-		if err != nil {
-			if err == mig.ErrNoNextVersion {
-				fmt.Printf("mig: no migrations to run. current version: %d\n", current)
-				return nil
-			}
-			return err
-		}
-
-		if err = next.Up(db); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func UpByOne(db *sql.DB, dir string) error {
-	migrations, err := mig.CollectMigrations(dir, minVersion, maxVersion)
+	name, err := mig.UpOne(driver, conn, viper.GetString("dir"))
 	if err != nil {
-		return err
+		fmt.Printf("Success   %v\n", name)
 	}
 
-	currentVersion, err := mig.GetDBVersion(db)
-	if err != nil {
-		return err
-	}
-
-	next, err := migrations.Next(currentVersion)
-	if err != nil {
-		if err == mig.ErrNoNextVersion {
-			fmt.Printf("mig: no migrations to run. current version: %d\n", currentVersion)
-		}
-		return err
-	}
-
-	if err = next.Up(db); err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
