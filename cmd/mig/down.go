@@ -21,7 +21,7 @@ var downAllCmd = &cobra.Command{
 	Short:   "Roll back all migrations",
 	Long:    "Roll back all migrations",
 	Example: `mig downall sqlite3 ./foo.db`,
-	RunE:    downRunE,
+	RunE:    downAllRunE,
 }
 
 func init() {
@@ -46,11 +46,15 @@ func downRunE(cmd *cobra.Command, args []string) error {
 	}
 
 	name, err := mig.Down(driver, conn, viper.GetString("dir"))
-	if err != nil {
-		fmt.Printf("Success   %v\n", name)
+	if mig.IsNoMigrationError(err) {
+		fmt.Println("No migrations to run")
+		return nil
+	} else if err != nil {
+		return err
 	}
 
-	return err
+	fmt.Printf("Success   %v\n", name)
+	return nil
 }
 
 func downAllRunE(cmd *cobra.Command, args []string) error {
@@ -61,8 +65,14 @@ func downAllRunE(cmd *cobra.Command, args []string) error {
 
 	count, err := mig.DownAll(driver, conn, viper.GetString("dir"))
 	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		fmt.Printf("No migrations to run")
+	} else {
 		fmt.Printf("Success   %d migrations\n", count)
 	}
 
-	return err
+	return nil
 }

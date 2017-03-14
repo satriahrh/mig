@@ -45,12 +45,18 @@ func upRunE(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	count, err := mig.Up(driver, conn)
+	count, err := mig.Up(driver, conn, viper.GetString("dir"))
 	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		fmt.Printf("No migrations to run")
+	} else {
 		fmt.Printf("Success   %d migrations\n", count)
 	}
 
-	return err
+	return nil
 }
 
 func upOneRunE(cmd *cobra.Command, args []string) error {
@@ -60,9 +66,13 @@ func upOneRunE(cmd *cobra.Command, args []string) error {
 	}
 
 	name, err := mig.UpOne(driver, conn, viper.GetString("dir"))
-	if err != nil {
-		fmt.Printf("Success   %v\n", name)
+	if mig.IsNoMigrationError(err) {
+		fmt.Println("No migrations to run")
+		return nil
+	} else if err != nil {
+		return err
 	}
 
-	return err
+	fmt.Printf("Success   %v\n", name)
+	return nil
 }

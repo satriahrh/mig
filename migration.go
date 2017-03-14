@@ -30,8 +30,7 @@ type migration struct {
 
 const sqlCmdPrefix = "-- +mig "
 
-var migrationTemplate = template.Must(template.New("mig.sql-migration").Parse(`
--- +mig Up
+var migrationTemplate = template.Must(template.New("mig.sql-migration").Parse(`-- +mig Up
 
 -- +mig Down
 

@@ -32,9 +32,13 @@ func redoRunE(cmd *cobra.Command, args []string) error {
 	}
 
 	name, err := mig.Redo(driver, conn, viper.GetString("dir"))
-	if err != nil {
-		fmt.Printf("Success   %v\n", name)
+	if mig.IsNoMigrationError(err) {
+		fmt.Println("No migrations to run")
+		return nil
+	} else if err != nil {
+		return err
 	}
 
-	return err
+	fmt.Printf("Success   %v\n", name)
+	return nil
 }

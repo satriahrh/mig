@@ -17,7 +17,7 @@ var versionCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(upCmd)
+	rootCmd.AddCommand(versionCmd)
 	versionCmd.PreRun = func(*cobra.Command, []string) {
 		viper.BindPFlags(versionCmd.Flags())
 	}
@@ -31,8 +31,14 @@ func versionRunE(cmd *cobra.Command, args []string) error {
 
 	version, err := mig.Version(driver, conn)
 	if err != nil {
+		return err
+	}
+
+	if version == 0 {
+		fmt.Printf("No migrations applied")
+	} else {
 		fmt.Printf("Version %d\n", version)
 	}
 
-	return err
+	return nil
 }

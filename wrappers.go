@@ -7,8 +7,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/spf13/viper"
-
 	// mysql driver
 	_ "github.com/go-sql-driver/mysql"
 	// postgres driver
@@ -16,17 +14,6 @@ import (
 	// sqlite3 driver
 	_ "github.com/mattn/go-sqlite3"
 )
-
-// IsNoMigrationError returns true if the error type is of
-// errNoMigration, indicating that there is no migration to run
-func IsNoMigrationError(err error) bool {
-	_, ok := err.(errNoMigration)
-	if ok {
-		return ok
-	}
-
-	return false
-}
 
 // Create a templated migration file in dir
 func Create(name, dir string) (string, error) {
@@ -57,14 +44,14 @@ func Down(driver string, conn string, dir string) (name string, err error) {
 		return "", err
 	}
 
-	migrations, err := collectMigrations(viper.GetString("dir"), 0, math.MaxInt64)
+	migrations, err := collectMigrations(dir, 0, math.MaxInt64)
 	if err != nil {
 		return "", err
 	}
 
 	current, err := migrations.current(currentVersion)
 	if err != nil {
-		return "", errNoMigration{version: current.version}
+		return "", errNoMigration{}
 	}
 
 	return current.down(db)
@@ -85,7 +72,7 @@ func DownAll(driver string, conn string, dir string) (int, error) {
 		return count, err
 	}
 
-	migrations, err := collectMigrations(viper.GetString("dir"), 0, math.MaxInt64)
+	migrations, err := collectMigrations(dir, 0, math.MaxInt64)
 	if err != nil {
 		return count, err
 	}
@@ -107,7 +94,7 @@ func DownAll(driver string, conn string, dir string) (int, error) {
 			return count, err
 		}
 
-		Log.Write([]byte(fmt.Sprintf("Success %v\n", name)))
+		Log.Write([]byte(fmt.Sprintf("Success   %v\n", name)))
 		count++
 	}
 }
@@ -126,7 +113,7 @@ func Up(driver string, conn string, dir string) (int, error) {
 		return count, err
 	}
 
-	migrations, err := collectMigrations(viper.GetString("dir"), 0, math.MaxInt64)
+	migrations, err := collectMigrations(dir, 0, math.MaxInt64)
 	if err != nil {
 		return count, err
 	}
@@ -148,7 +135,7 @@ func Up(driver string, conn string, dir string) (int, error) {
 			return count, err
 		}
 
-		Log.Write([]byte(fmt.Sprintf("Success %v\n", name)))
+		Log.Write([]byte(fmt.Sprintf("Success   %v\n", name)))
 		count++
 	}
 }
@@ -170,7 +157,7 @@ func UpOne(driver string, conn string, dir string) (name string, err error) {
 		return "", err
 	}
 
-	migrations, err := collectMigrations(viper.GetString("dir"), 0, math.MaxInt64)
+	migrations, err := collectMigrations(dir, 0, math.MaxInt64)
 	if err != nil {
 		return "", err
 	}
@@ -200,14 +187,14 @@ func Redo(driver string, conn string, dir string) (string, error) {
 		return "", err
 	}
 
-	migrations, err := collectMigrations(viper.GetString("dir"), 0, math.MaxInt64)
+	migrations, err := collectMigrations(dir, 0, math.MaxInt64)
 	if err != nil {
 		return "", err
 	}
 
 	current, err := migrations.current(currentVersion)
 	if err != nil {
-		return "", errNoMigration{version: current.version}
+		return "", errNoMigration{}
 	}
 
 	if _, err := current.down(db); err != nil {
@@ -224,7 +211,7 @@ type migrationStatus struct {
 type status []migrationStatus
 
 // Return the status of each migration
-func Status(driver string, conn string) (status, error) {
+func Status(driver string, conn string, dir string) (status, error) {
 	s := status{}
 
 	db, err := sql.Open(driver, conn)
@@ -237,7 +224,7 @@ func Status(driver string, conn string) (status, error) {
 		return s, err
 	}
 
-	migrations, err := collectMigrations(viper.GetString("dir"), 0, math.MaxInt64)
+	migrations, err := collectMigrations(dir, 0, math.MaxInt64)
 	if err != nil {
 		return s, err
 	}

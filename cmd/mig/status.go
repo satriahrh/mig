@@ -17,7 +17,10 @@ var statusCmd = &cobra.Command{
 }
 
 func init() {
+	statusCmd.Flags().StringP("dir", "d", ".", "directory with migration files")
+
 	rootCmd.AddCommand(statusCmd)
+
 	statusCmd.PreRun = func(*cobra.Command, []string) {
 		viper.BindPFlags(statusCmd.Flags())
 	}
@@ -29,13 +32,18 @@ func statusRunE(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	status, err := mig.Status(driver, conn)
+	status, err := mig.Status(driver, conn, viper.GetString("dir"))
 	if err != nil {
 		return err
 	}
 
-	fmt.Println("    Applied At                  Migration")
-	fmt.Println("    =======================================")
+	if len(status) == 0 {
+		fmt.Printf("No migrations applied")
+		return nil
+	}
+
+	fmt.Println("Applied At                  Migration")
+	fmt.Println("===================================================")
 	for _, s := range status {
 		fmt.Printf("%-24s -- %v\n", s.Applied, s.Name)
 	}

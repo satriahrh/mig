@@ -18,23 +18,28 @@ var (
 
 var Log io.Writer
 
-type errNoMigration struct {
-	version int64
-}
-
-func (e errNoMigration) Error() string {
-	if e.version > 0 {
-		return fmt.Sprintf("no migration %d", e.version)
-	} else {
-		return "no migrations to execute"
-	}
-}
-
-type migrations []*migration
-
 func init() {
 	Log = ioutil.Discard
 }
+
+type errNoMigration struct{}
+
+func (e errNoMigration) Error() string {
+	return "no migrations to execute"
+}
+
+// IsNoMigrationError returns true if the error type is of
+// errNoMigration, indicating that there is no migration to run
+func IsNoMigrationError(err error) bool {
+	_, ok := err.(errNoMigration)
+	if ok {
+		return ok
+	}
+
+	return false
+}
+
+type migrations []*migration
 
 // helpers so we can use pkg sort
 func (m migrations) Len() int      { return len(m) }
