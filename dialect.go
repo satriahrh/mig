@@ -5,28 +5,28 @@ import (
 	"fmt"
 )
 
-// SqlDialect abstracts the details of specific SQL dialects
+// sqlDialect abstracts the details of specific SQL dialects
 // for mig's few SQL specific statements
-type SqlDialect interface {
-	createVersionTableSql() string // sql string to create the mig_migrations table
-	insertVersionSql() string      // sql string to insert the initial version table row
-	dbVersionQuery(db *sql.DB) (*sql.Rows, error)
+type sqlDialect interface {
+	createVersionTableSQL() string // sql string to create the mig_migrations table
+	insertVersionSQL() string      // sql string to insert the initial version table row
+	versionQuery(db *sql.DB) (*sql.Rows, error)
 }
 
-var dialect SqlDialect = &PostgresDialect{}
+var dialect sqlDialect = &postgresDialect{}
 
-func GetDialect() SqlDialect {
+func getDialect() sqlDialect {
 	return dialect
 }
 
-func SetDialect(d string) error {
+func setDialect(d string) error {
 	switch d {
 	case "postgres":
-		dialect = &PostgresDialect{}
+		dialect = &postgresDialect{}
 	case "mysql":
-		dialect = &MySqlDialect{}
+		dialect = &mySQLDialect{}
 	case "sqlite3":
-		dialect = &Sqlite3Dialect{}
+		dialect = &sqlite3Dialect{}
 	default:
 		return fmt.Errorf("%q: unknown dialect", d)
 	}
@@ -34,13 +34,11 @@ func SetDialect(d string) error {
 	return nil
 }
 
-////////////////////////////
-// Postgres
-////////////////////////////
+type postgresDialect struct{}
+type mySQLDialect struct{}
+type sqlite3Dialect struct{}
 
-type PostgresDialect struct{}
-
-func (pg PostgresDialect) createVersionTableSql() string {
+func (postgresDialect) createVersionTableSQL() string {
 	return `CREATE TABLE mig_migrations (
             	id serial NOT NULL,
                 version_id bigint NOT NULL,
@@ -50,11 +48,11 @@ func (pg PostgresDialect) createVersionTableSql() string {
             );`
 }
 
-func (pg PostgresDialect) insertVersionSql() string {
+func (postgresDialect) insertVersionSQL() string {
 	return "INSERT INTO mig_migrations (version_id, is_applied) VALUES ($1, $2);"
 }
 
-func (pg PostgresDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
+func (postgresDialect) versionQuery(db *sql.DB) (*sql.Rows, error) {
 	rows, err := db.Query("SELECT version_id, is_applied from mig_migrations ORDER BY id DESC")
 	if err != nil {
 		return nil, err
@@ -63,13 +61,7 @@ func (pg PostgresDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 	return rows, err
 }
 
-////////////////////////////
-// MySQL
-////////////////////////////
-
-type MySqlDialect struct{}
-
-func (m MySqlDialect) createVersionTableSql() string {
+func (mySQLDialect) createVersionTableSQL() string {
 	return `CREATE TABLE mig_migrations (
                 id serial NOT NULL,
                 version_id bigint NOT NULL,
@@ -79,11 +71,11 @@ func (m MySqlDialect) createVersionTableSql() string {
             );`
 }
 
-func (m MySqlDialect) insertVersionSql() string {
+func (mySQLDialect) insertVersionSQL() string {
 	return "INSERT INTO mig_migrations (version_id, is_applied) VALUES (?, ?);"
 }
 
-func (m MySqlDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
+func (mySQLDialect) versionQuery(db *sql.DB) (*sql.Rows, error) {
 	rows, err := db.Query("SELECT version_id, is_applied from mig_migrations ORDER BY id DESC")
 	if err != nil {
 		return nil, err
@@ -92,13 +84,7 @@ func (m MySqlDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 	return rows, err
 }
 
-////////////////////////////
-// sqlite3
-////////////////////////////
-
-type Sqlite3Dialect struct{}
-
-func (m Sqlite3Dialect) createVersionTableSql() string {
+func (sqlite3Dialect) createVersionTableSQL() string {
 	return `CREATE TABLE mig_migrations (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 version_id INTEGER NOT NULL,
@@ -107,11 +93,11 @@ func (m Sqlite3Dialect) createVersionTableSql() string {
             );`
 }
 
-func (m Sqlite3Dialect) insertVersionSql() string {
+func (sqlite3Dialect) insertVersionSQL() string {
 	return "INSERT INTO mig_migrations (version_id, is_applied) VALUES (?, ?);"
 }
 
-func (m Sqlite3Dialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
+func (sqlite3Dialect) versionQuery(db *sql.DB) (*sql.Rows, error) {
 	rows, err := db.Query("SELECT version_id, is_applied from mig_migrations ORDER BY id DESC")
 	if err != nil {
 		return nil, err

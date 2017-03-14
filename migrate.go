@@ -4,20 +4,17 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
+	"os"
 	"path/filepath"
-	"runtime"
 	"sort"
 )
 
 var (
 	ErrNoCurrentVersion = errors.New("no current version found")
 	ErrNoNextVersion    = errors.New("no next version found")
-
-	MaxVersion int64 = 9223372036854775807 // max(int64)
-
-	goMigrations []*Migration
 )
+
+var Log = os.Stdout
 
 type Migrations []*Migration
 
@@ -26,7 +23,7 @@ func (ms Migrations) Len() int      { return len(ms) }
 func (ms Migrations) Swap(i, j int) { ms[i], ms[j] = ms[j], ms[i] }
 func (ms Migrations) Less(i, j int) bool {
 	if ms[i].Version == ms[j].Version {
-		log.Fatalf("mig: duplicate version %v detected:\n%v\n%v", ms[i].Version, ms[i].Source, ms[j].Source)
+		panic(fmt.Sprintf("mig: duplicate version %v detected:\n%v\n%v", ms[i].Version, ms[i].Source, ms[j].Source))
 	}
 	return ms[i].Version < ms[j].Version
 }
@@ -67,28 +64,20 @@ func (ms Migrations) String() string {
 	return str
 }
 
-func AddMigration(up func(*sql.Tx) error, down func(*sql.Tx) error) {
-	_, filename, _, _ := runtime.Caller(1)
-	v, _ := NumericComponent(filename)
-	migration := &Migration{Version: v, Next: -1, Previous: -1, UpFn: up, DownFn: down, Source: filename}
-
-	goMigrations = append(goMigrations, migration)
-}
-
-// Collect all the valid looking migration scripts in the
-// migrations folder and go func registry, and key them by version
-func CollectMigrations(dirpath string, current, target int64) (Migrations, error) {
+// collect all the valid looking migration scripts in the migrations folder,
+// and order them by version.
+func collectMigrations(dirpath string, current, target int64) (Migrations, error) {
 	var migrations Migrations
 
 	// extract the numeric component of each migration,
 	// filter out any uninteresting files,
 	// and ensure we only have one file per migration version.
-	sqlMigrations, err := filepath.Glob(dirpath + "/*.sql")
+	files, err := filepath.Glob(dirpath + "/*.sql")
 	if err != nil {
 		return nil, err
 	}
 
-	for _, file := range sqlMigrations {
+	for _, file := range files {
 		v, err := NumericComponent(file)
 		if err != nil {
 			return nil, err
@@ -99,22 +88,15 @@ func CollectMigrations(dirpath string, current, target int64) (Migrations, error
 		}
 	}
 
-	for _, migration := range goMigrations {
-		v, err := NumericComponent(migration.Source)
-		if err != nil {
-			return nil, err
-		}
-		if versionFilter(v, current, target) {
-			migrations = append(migrations, migration)
-		}
-	}
-
 	migrations = sortAndConnectMigrations(migrations)
 
 	return migrations, nil
 }
 
+// sortAndConnectMigrations sorts the migrations based on the version numbers
+// and creates a linked list between each migration.
 func sortAndConnectMigrations(migrations Migrations) Migrations {
+	// Sort the migrations based on version
 	sort.Sort(migrations)
 
 	// now that we're sorted in the appropriate direction,
@@ -131,8 +113,9 @@ func sortAndConnectMigrations(migrations Migrations) Migrations {
 	return migrations
 }
 
+// versionFilter returns true if v is within the current version and target
+// version range.
 func versionFilter(v, current, target int64) bool {
-
 	if target > current {
 		return v > current && v <= target
 	}
@@ -144,11 +127,35 @@ func versionFilter(v, current, target int64) bool {
 	return false
 }
 
-// retrieve the current version for this DB.
-// Create and initialize the DB version table if it doesn't exist.
-func EnsureDBVersion(db *sql.DB) (int64, error) {
+// Create the mig_migrations table
+// and insert the initial 0 value into it
+func createVersionTable(db *sql.DB) error {
+	txn, err := db.Begin()
+	if err != nil {
+		return err
+	}
 
-	rows, err := GetDialect().dbVersionQuery(db)
+	d := getDialect()
+
+	if _, err := txn.Exec(d.createVersionTableSQL()); err != nil {
+		txn.Rollback()
+		return err
+	}
+
+	version := 0
+	applied := true
+	if _, err := txn.Exec(d.insertVersionSQL(), version, applied); err != nil {
+		txn.Rollback()
+		return err
+	}
+
+	return txn.Commit()
+}
+
+// getVersion retrieves the current version for this database.
+// Create and initialize the database migration table if it doesn't exist.
+func getVersion(db *sql.DB) (int64, error) {
+	rows, err := getDialect().versionQuery(db)
 	if err != nil {
 		return 0, createVersionTable(db)
 	}
@@ -163,7 +170,7 @@ func EnsureDBVersion(db *sql.DB) (int64, error) {
 	for rows.Next() {
 		var row MigrationRecord
 		if err = rows.Scan(&row.VersionId, &row.IsApplied); err != nil {
-			log.Fatal("error scanning rows:", err)
+			return 0, errors.New("error scanning rows:", err)
 		}
 
 		// have we already marked this version to be skipped?
@@ -189,40 +196,4 @@ func EnsureDBVersion(db *sql.DB) (int64, error) {
 	}
 
 	panic("unreachable")
-}
-
-// Create the mig_migrations table
-// and insert the initial 0 value into it
-func createVersionTable(db *sql.DB) error {
-	txn, err := db.Begin()
-	if err != nil {
-		return err
-	}
-
-	d := GetDialect()
-
-	if _, err := txn.Exec(d.createVersionTableSql()); err != nil {
-		txn.Rollback()
-		return err
-	}
-
-	version := 0
-	applied := true
-	if _, err := txn.Exec(d.insertVersionSql(), version, applied); err != nil {
-		txn.Rollback()
-		return err
-	}
-
-	return txn.Commit()
-}
-
-// wrapper for EnsureDBVersion for callers that don't already have
-// their own DB instance
-func GetDBVersion(db *sql.DB) (int64, error) {
-	version, err := EnsureDBVersion(db)
-	if err != nil {
-		return -1, err
-	}
-
-	return version, nil
 }

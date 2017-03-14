@@ -8,7 +8,28 @@ import (
 	"time"
 
 	"github.com/nullbio/mig"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
+
+var statusCmd = &cobra.Command{
+	Use:     "status",
+	Short:   "Dump the migration status for the database",
+	Long:    "Dump the migration status for the database",
+	Example: `mig status postgres "user=postgres dbname=postgres sslmode=disable"`,
+	RunE:    statusRunE,
+}
+
+func init() {
+	rootCmd.AddCommand(statusCmd)
+	statusCmd.PreRun = func(*cobra.Command, []string) {
+		viper.BindPFlags(statusCmd.Flags())
+	}
+}
+
+func statusRunE(cmd *cobra.Command, args []string) error {
+	return nil
+}
 
 func Status(db *sql.DB, dir string) error {
 	// Collect all migrations
@@ -18,7 +39,7 @@ func Status(db *sql.DB, dir string) error {
 	}
 
 	// must ensure that the version table exists if we're running on a pristine DB
-	if _, err := mig.EnsureDBVersion(db); err != nil {
+	if _, err := getVersion(db); err != nil {
 		return err
 	}
 

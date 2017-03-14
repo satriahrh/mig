@@ -1,10 +1,13 @@
 package mig
 
 import (
+	"bufio"
+	"bytes"
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
+	"io"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -20,69 +23,47 @@ type MigrationRecord struct {
 
 type Migration struct {
 	Version  int64
-	Next     int64               // next version, or -1 if none
-	Previous int64               // previous version, -1 if none
-	Source   string              // path to .sql script
-	UpFn     func(*sql.Tx) error // Up go migration function
-	DownFn   func(*sql.Tx) error // Down go migration function
+	Next     int64  // next version, or -1 if none
+	Previous int64  // previous version, -1 if none
+	Source   string // path to .sql script
 }
+
+const sqlCmdPrefix = "-- +mig "
+
+var migrationTemplate = template.Must(template.New("mig.sql-migration").Parse(`
+-- +mig Up
+
+-- +mig Down
+
+`))
 
 func (m *Migration) String() string {
 	return fmt.Sprintf(m.Source)
 }
 
-func (m *Migration) Up(db *sql.DB) error {
+func (m *Migration) Up(db *sql.DB) (string, error) {
 	return m.run(db, true)
 }
 
-func (m *Migration) Down(db *sql.DB) error {
+func (m *Migration) Down(db *sql.DB) (string, error) {
 	return m.run(db, false)
 }
 
-func (m *Migration) run(db *sql.DB, direction bool) error {
-	switch filepath.Ext(m.Source) {
-	case ".sql":
-		if err := runSQLMigration(db, m.Source, m.Version, direction); err != nil {
-			return errors.New(fmt.Sprintf("FAIL %v, quitting migration", err))
-		}
-
-	case ".go":
-		tx, err := db.Begin()
-		if err != nil {
-			log.Fatal("db.Begin: ", err)
-		}
-
-		fn := m.UpFn
-		if !direction {
-			fn = m.DownFn
-		}
-		if fn != nil {
-			if err := fn(tx); err != nil {
-				tx.Rollback()
-				log.Fatalf("FAIL %s (%v), quitting migration.", filepath.Base(m.Source), err)
-				return err
-			}
-		}
-
-		if err = FinalizeMigration(tx, direction, m.Version); err != nil {
-			log.Fatalf("error finalizing migration %s, quitting. (%v)", filepath.Base(m.Source), err)
-		}
+func (m *Migration) run(db *sql.DB, direction bool) (name string, err error) {
+	if err := runMigration(db, m.Source, m.Version, direction); err != nil {
+		return "", err
 	}
 
-	fmt.Println("OK   ", filepath.Base(m.Source))
-
-	return nil
+	return filepath.Base(m.Source), nil
 }
 
 // look for migration scripts with names in the form:
-//  XXX_descriptivename.ext
+//  XXX_descriptivename.sql
 // where XXX specifies the version number
-// and ext specifies the type of migration
 func NumericComponent(name string) (int64, error) {
-
 	base := filepath.Base(name)
 
-	if ext := filepath.Ext(base); ext != ".go" && ext != ".sql" {
+	if ext := filepath.Ext(base); ext != ".sql" {
 		return 0, errors.New("not a recognized migration file type")
 	}
 
@@ -99,20 +80,12 @@ func NumericComponent(name string) (int64, error) {
 	return n, e
 }
 
-func CreateMigration(name, migrationType, dir string, t time.Time) (path string, err error) {
-
-	if migrationType != "go" && migrationType != "sql" {
-		return "", errors.New("migration type must be 'go' or 'sql'")
-	}
-
+func CreateMigration(name, dir string, t time.Time) (path string, err error) {
 	timestamp := t.Format("20060102150405")
-	filename := fmt.Sprintf("%v_%v.%v", timestamp, name, migrationType)
+	filename := fmt.Sprintf("%v_%v.sql", timestamp, name)
 
 	fpath := filepath.Join(dir, filename)
-	tmpl := sqlMigrationTemplate
-	if migrationType == "go" {
-		tmpl = goSqlMigrationTemplate
-	}
+	tmpl := migrationTemplate
 
 	path, err = writeTemplateToFile(fpath, tmpl, timestamp)
 
@@ -121,10 +94,8 @@ func CreateMigration(name, migrationType, dir string, t time.Time) (path string,
 
 // Update the version table for the given migration,
 // and finalize the transaction.
-func FinalizeMigration(tx *sql.Tx, direction bool, v int64) error {
-
-	// XXX: drop mig_migrations table on some minimum version number?
-	stmt := GetDialect().insertVersionSql()
+func finalizeMigration(tx *sql.Tx, direction bool, v int64) error {
+	stmt := getDialect().insertVersionSQL()
 	if _, err := tx.Exec(stmt, v, direction); err != nil {
 		tx.Rollback()
 		return err
@@ -133,33 +104,158 @@ func FinalizeMigration(tx *sql.Tx, direction bool, v int64) error {
 	return tx.Commit()
 }
 
-var sqlMigrationTemplate = template.Must(template.New("mig.sql-migration").Parse(`
--- +mig Up
--- SQL in section 'Up' is executed when this migration is applied
+// Checks the line to see if the line has a statement-ending semicolon
+// or if the line contains a double-dash comment.
+func endsWithSemicolon(line string) bool {
+	prev := ""
+	scanner := bufio.NewScanner(strings.NewReader(line))
+	scanner.Split(bufio.ScanWords)
 
+	for scanner.Scan() {
+		word := scanner.Text()
+		if strings.HasPrefix(word, "--") {
+			break
+		}
+		prev = word
+	}
 
--- +mig Down
--- SQL section 'Down' is executed when this migration is rolled back
-
-`))
-var goSqlMigrationTemplate = template.Must(template.New("mig.go-migration").Parse(`
-package migration
-
-import (
-    "database/sql"
-
-    "github.com/nullbio/mig"
-)
-
-func init() {
-    mig.AddMigration(Up_{{.}}, Down_{{.}})
+	return strings.HasSuffix(prev, ";")
 }
 
-func Up_{{.}}(tx *sql.Tx) error {
-    return nil
+// Split the given sql script into individual statements.
+//
+// The base case is to simply split on semicolons, as these
+// naturally terminate a statement.
+//
+// However, more complex cases like pl/pgsql can have semicolons
+// within a statement. For these cases, we provide the explicit annotations
+// 'StatementBegin' and 'StatementEnd' to allow the script to
+// tell us to ignore semicolons.
+func splitSQLStatements(r io.Reader, direction bool) ([]string, error) {
+	var err error
+	var stmts []string
+	var buf bytes.Buffer
+	scanner := bufio.NewScanner(r)
+
+	// track the count of each section
+	// so we can diagnose scripts with no annotations
+	upSections := 0
+	downSections := 0
+
+	statementEnded := false
+	ignoreSemicolons := false
+	directionIsActive := false
+
+	for scanner.Scan() {
+
+		line := scanner.Text()
+
+		// handle any mig-specific commands
+		if strings.HasPrefix(line, sqlCmdPrefix) {
+			cmd := strings.TrimSpace(line[len(sqlCmdPrefix):])
+			switch cmd {
+			case "Up":
+				directionIsActive = (direction == true)
+				upSections++
+				break
+
+			case "Down":
+				directionIsActive = (direction == false)
+				downSections++
+				break
+
+			case "StatementBegin":
+				if directionIsActive {
+					ignoreSemicolons = true
+				}
+				break
+
+			case "StatementEnd":
+				if directionIsActive {
+					statementEnded = (ignoreSemicolons == true)
+					ignoreSemicolons = false
+				}
+				break
+			}
+		}
+
+		if !directionIsActive {
+			continue
+		}
+
+		if _, err := buf.WriteString(line + "\n"); err != nil {
+			panic(fmt.Sprintf("io err: %v", err))
+		}
+
+		// Wrap up the two supported cases: 1) basic with semicolon; 2) psql statement
+		// Lines that end with semicolon that are in a statement block
+		// do not conclude statement.
+		if (!ignoreSemicolons && endsWithSemicolon(line)) || statementEnded {
+			statementEnded = false
+			stmts = append(stmts, buf.String())
+			buf.Reset()
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return stmts, fmt.Errorf("error reading migration: %v", err)
+	}
+
+	// diagnose likely migration script errors
+	if ignoreSemicolons {
+		return stmts, errors.New("saw '-- +mig StatementBegin' with no matching '-- +mig StatementEnd'")
+	}
+
+	if bufferRemaining := strings.TrimSpace(buf.String()); len(bufferRemaining) > 0 {
+		return stmts, fmt.Errorf("unexpected unfinished SQL query: %s. Missing a semicolon?", bufferRemaining)
+	}
+
+	if upSections == 0 && downSections == 0 {
+		return stmts, fmt.Errorf(`no up/down annotations found, so no statements were executed`)
+	}
+
+	return stmts, err
 }
 
-func Down_{{.}}(tx *sql.Tx) error {
-    return nil
+// runMigration runs a migration specified in raw SQL.
+//
+// Sections of the script can be annotated with a special comment,
+// starting with "-- +mig" to specify whether the section should
+// be applied during an Up or Down migration
+//
+// All statements following an Up or Down directive are grouped together
+// until another direction directive is found.
+func runMigration(db *sql.DB, scriptFile string, v int64, direction bool) error {
+	tx, err := db.Begin()
+	if err != nil {
+		panic(err)
+	}
+
+	f, err := os.Open(scriptFile)
+	if err != nil {
+		return fmt.Errorf("cannot open migration file %s: %v", scriptFile, err)
+	}
+
+	stmts, err := splitSQLStatements(f, direction)
+	if err != nil {
+		return fmt.Errorf("error splitting migration %s: %v", filepath.Base(scriptFile), err)
+	}
+
+	// find each statement, checking annotations for up/down direction
+	// and execute each of them in the current transaction.
+	// Commits the transaction if successfully applied each statement and
+	// records the version into the version table or returns an error and
+	// rolls back the transaction.
+	for _, query := range stmts {
+		if _, err = tx.Exec(query); err != nil {
+			tx.Rollback()
+			return fmt.Errorf("error executing migration %s: %v", filepath.Base(scriptFile), err)
+		}
+	}
+
+	if err = finalizeMigration(tx, direction, v); err != nil {
+		return fmt.Errorf("error committing migration %s: %v", filepath.Base(scriptFile), err)
+	}
+
+	return nil
 }
-`))
