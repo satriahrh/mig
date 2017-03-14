@@ -1,4 +1,4 @@
-package goose
+package main
 
 import (
 	"database/sql"
@@ -6,17 +6,19 @@ import (
 	"log"
 	"path/filepath"
 	"time"
+
+	"github.com/nullbio/mig"
 )
 
 func Status(db *sql.DB, dir string) error {
-	// collect all migrations
-	migrations, err := collectMigrations(dir, minVersion, maxVersion)
+	// Collect all migrations
+	migrations, err := mig.CollectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}
 
 	// must ensure that the version table exists if we're running on a pristine DB
-	if _, err := EnsureDBVersion(db); err != nil {
+	if _, err := mig.EnsureDBVersion(db); err != nil {
 		return err
 	}
 
@@ -30,8 +32,8 @@ func Status(db *sql.DB, dir string) error {
 }
 
 func printMigrationStatus(db *sql.DB, version int64, script string) {
-	var row MigrationRecord
-	q := fmt.Sprintf("SELECT tstamp, is_applied FROM goose_db_version WHERE version_id=%d ORDER BY tstamp DESC LIMIT 1", version)
+	var row mig.MigrationRecord
+	q := fmt.Sprintf("SELECT tstamp, is_applied FROM mig_migrations WHERE version_id=%d ORDER BY tstamp DESC LIMIT 1", version)
 	e := db.QueryRow(q).Scan(&row.TStamp, &row.IsApplied)
 
 	if e != nil && e != sql.ErrNoRows {

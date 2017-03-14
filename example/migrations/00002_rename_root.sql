@@ -1,9 +1,9 @@
--- +goose Up
--- +goose StatementBegin
+-- +mig Up
+-- +mig StatementBegin
 UPDATE users SET username='admin' WHERE username='root';
--- +goose StatementEnd
+-- +mig StatementEnd
 
--- +goose Down
--- +goose StatementBegin
+-- +mig Down
+-- +mig StatementBegin
 UPDATE users SET username='root' WHERE username='admin';
--- +goose StatementEnd
+-- +mig StatementEnd

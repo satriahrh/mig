@@ -1,16 +1,18 @@
-package goose
+package main
 
 import (
 	"database/sql"
+
+	"github.com/nullbio/mig"
 )
 
 func Redo(db *sql.DB, dir string) error {
-	currentVersion, err := GetDBVersion(db)
+	currentVersion, err := mig.GetDBVersion(db)
 	if err != nil {
 		return err
 	}
 
-	migrations, err := collectMigrations(dir, minVersion, maxVersion)
+	migrations, err := mig.CollectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}

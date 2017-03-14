@@ -1,4 +1,4 @@
-package goose
+package mig
 
 import (
 	"strings"
@@ -86,14 +86,14 @@ func TestSplitStatements(t *testing.T) {
 	}
 }
 
-var functxt = `-- +goose Up
+var functxt = `-- +mig Up
 CREATE TABLE IF NOT EXISTS histories (
   id                BIGSERIAL  PRIMARY KEY,
   current_value     varchar(2000) NOT NULL,
   created_at      timestamp with time zone  NOT NULL
 );
 
--- +goose StatementBegin
+-- +mig StatementBegin
 CREATE OR REPLACE FUNCTION histories_partition_creation( DATE, DATE )
 returns void AS $$
 DECLARE
@@ -114,15 +114,15 @@ BEGIN
 END;         -- FUNCTION END
 $$
 language plpgsql;
--- +goose StatementEnd
+-- +mig StatementEnd
 
--- +goose Down
+-- +mig Down
 drop function histories_partition_creation(DATE, DATE);
 drop TABLE histories;
 `
 
 // test multiple up/down transitions in a single script
-var multitxt = `-- +goose Up
+var multitxt = `-- +mig Up
 CREATE TABLE post (
     id int NOT NULL,
     title text,
@@ -130,10 +130,10 @@ CREATE TABLE post (
     PRIMARY KEY(id)
 );
 
--- +goose Down
+-- +mig Down
 DROP TABLE post;
 
--- +goose Up
+-- +mig Up
 CREATE TABLE fancier_post (
     id int NOT NULL,
     title text,
@@ -142,6 +142,6 @@ CREATE TABLE fancier_post (
     PRIMARY KEY(id)
 );
 
--- +goose Down
+-- +mig Down
 DROP TABLE fancier_post;
 `

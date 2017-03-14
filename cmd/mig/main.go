@@ -7,7 +7,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/pressly/goose"
+	"github.com/nullbio/mig"
 
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	flags = flag.NewFlagSet("goose", flag.ExitOnError)
+	flags = flag.NewFlagSet("mig", flag.ExitOnError)
 	dir   = flags.String("dir", ".", "directory with migration files")
 )
 
@@ -27,8 +27,8 @@ func main() {
 	args := flags.Args()
 
 	if len(args) > 1 && args[0] == "create" {
-		if err := goose.Run("create", nil, *dir, args[1:]...); err != nil {
-			log.Fatalf("goose run: %v", err)
+		if err := run("create", nil, *dir, args[1:]...); err != nil {
+			log.Fatalf("mig run: %v", err)
 		}
 		return
 	}
@@ -47,7 +47,7 @@ func main() {
 
 	switch driver {
 	case "postgres", "mysql", "sqlite3":
-		if err := goose.SetDialect(driver); err != nil {
+		if err := mig.SetDialect(driver); err != nil {
 			log.Fatal(err)
 		}
 	default:
@@ -70,8 +70,8 @@ func main() {
 		arguments = append(arguments, args[3:]...)
 	}
 
-	if err := goose.Run(command, db, *dir, arguments...); err != nil {
-		log.Fatalf("goose run: %v", err)
+	if err := run(command, db, *dir, arguments...); err != nil {
+		log.Fatalf("mig run: %v", err)
 	}
 }
 
@@ -82,13 +82,13 @@ func usage() {
 }
 
 var (
-	usagePrefix = `Usage: goose [OPTIONS] DRIVER DBSTRING COMMAND
+	usagePrefix = `Usage: mig [OPTIONS] DRIVER DBSTRING COMMAND
 
 Examples:
-    goose postgres "user=postgres dbname=postgres sslmode=disable" up
-    goose mysql "user:password@/dbname" down
-    goose sqlite3 ./foo.db status
-    goose postgres "user=postgres dbname=postgres sslmode=disable" create init sql
+    mig postgres "user=postgres dbname=postgres sslmode=disable" up
+    mig mysql "user:password@/dbname" down
+    mig sqlite3 ./foo.db status
+    mig postgres "user=postgres dbname=postgres sslmode=disable" create init sql
 
 Options:
 `

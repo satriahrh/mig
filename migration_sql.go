@@ -1,4 +1,4 @@
-package goose
+package mig
 
 import (
 	"bufio"
@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-const sqlCmdPrefix = "-- +goose "
+const sqlCmdPrefix = "-- +mig "
 
 // Checks the line to see if the line has a statement-ending semicolon
 // or if the line contains a double-dash comment.
@@ -59,7 +59,7 @@ func splitSQLStatements(r io.Reader, direction bool) (stmts []string) {
 
 		line := scanner.Text()
 
-		// handle any goose-specific commands
+		// handle any mig-specific commands
 		if strings.HasPrefix(line, sqlCmdPrefix) {
 			cmd := strings.TrimSpace(line[len(sqlCmdPrefix):])
 			switch cmd {
@@ -112,7 +112,7 @@ func splitSQLStatements(r io.Reader, direction bool) (stmts []string) {
 
 	// diagnose likely migration script errors
 	if ignoreSemicolons {
-		log.Println("WARNING: saw '-- +goose StatementBegin' with no matching '-- +goose StatementEnd'")
+		log.Println("WARNING: saw '-- +mig StatementBegin' with no matching '-- +mig StatementEnd'")
 	}
 
 	if bufferRemaining := strings.TrimSpace(buf.String()); len(bufferRemaining) > 0 {
@@ -120,8 +120,7 @@ func splitSQLStatements(r io.Reader, direction bool) (stmts []string) {
 	}
 
 	if upSections == 0 && downSections == 0 {
-		log.Fatalf(`ERROR: no Up/Down annotations found, so no statements were executed.
-			See https://bitbucket.org/liamstask/goose/overview for details.`)
+		log.Fatalf(`ERROR: no Up/Down annotations found, so no statements were executed.`)
 	}
 
 	return
@@ -130,7 +129,7 @@ func splitSQLStatements(r io.Reader, direction bool) (stmts []string) {
 // Run a migration specified in raw SQL.
 //
 // Sections of the script can be annotated with a special comment,
-// starting with "-- +goose" to specify whether the section should
+// starting with "-- +mig" to specify whether the section should
 // be applied during an Up or Down migration
 //
 // All statements following an Up or Down directive are grouped together

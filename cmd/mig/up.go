@@ -1,26 +1,28 @@
-package goose
+package main
 
 import (
 	"database/sql"
 	"fmt"
+
+	"github.com/nullbio/mig"
 )
 
 func Up(db *sql.DB, dir string) error {
-	migrations, err := collectMigrations(dir, minVersion, maxVersion)
+	migrations, err := mig.CollectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}
 
 	for {
-		current, err := GetDBVersion(db)
+		current, err := mig.GetDBVersion(db)
 		if err != nil {
 			return err
 		}
 
 		next, err := migrations.Next(current)
 		if err != nil {
-			if err == ErrNoNextVersion {
-				fmt.Printf("goose: no migrations to run. current version: %d\n", current)
+			if err == mig.ErrNoNextVersion {
+				fmt.Printf("mig: no migrations to run. current version: %d\n", current)
 				return nil
 			}
 			return err
@@ -35,20 +37,20 @@ func Up(db *sql.DB, dir string) error {
 }
 
 func UpByOne(db *sql.DB, dir string) error {
-	migrations, err := collectMigrations(dir, minVersion, maxVersion)
+	migrations, err := mig.CollectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}
 
-	currentVersion, err := GetDBVersion(db)
+	currentVersion, err := mig.GetDBVersion(db)
 	if err != nil {
 		return err
 	}
 
 	next, err := migrations.Next(currentVersion)
 	if err != nil {
-		if err == ErrNoNextVersion {
-			fmt.Printf("goose: no migrations to run. current version: %d\n", currentVersion)
+		if err == mig.ErrNoNextVersion {
+			fmt.Printf("mig: no migrations to run. current version: %d\n", currentVersion)
 		}
 		return err
 	}

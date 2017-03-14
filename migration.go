@@ -1,4 +1,4 @@
-package goose
+package mig
 
 import (
 	"database/sql"
@@ -123,7 +123,7 @@ func CreateMigration(name, migrationType, dir string, t time.Time) (path string,
 // and finalize the transaction.
 func FinalizeMigration(tx *sql.Tx, direction bool, v int64) error {
 
-	// XXX: drop goose_db_version table on some minimum version number?
+	// XXX: drop mig_migrations table on some minimum version number?
 	stmt := GetDialect().insertVersionSql()
 	if _, err := tx.Exec(stmt, v, direction); err != nil {
 		tx.Rollback()
@@ -133,26 +133,26 @@ func FinalizeMigration(tx *sql.Tx, direction bool, v int64) error {
 	return tx.Commit()
 }
 
-var sqlMigrationTemplate = template.Must(template.New("goose.sql-migration").Parse(`
--- +goose Up
+var sqlMigrationTemplate = template.Must(template.New("mig.sql-migration").Parse(`
+-- +mig Up
 -- SQL in section 'Up' is executed when this migration is applied
 
 
--- +goose Down
+-- +mig Down
 -- SQL section 'Down' is executed when this migration is rolled back
 
 `))
-var goSqlMigrationTemplate = template.Must(template.New("goose.go-migration").Parse(`
+var goSqlMigrationTemplate = template.Must(template.New("mig.go-migration").Parse(`
 package migration
 
 import (
     "database/sql"
 
-    "github.com/pressly/goose"
+    "github.com/nullbio/mig"
 )
 
 func init() {
-    goose.AddMigration(Up_{{.}}, Down_{{.}})
+    mig.AddMigration(Up_{{.}}, Down_{{.}})
 }
 
 func Up_{{.}}(tx *sql.Tx) error {

@@ -1,4 +1,4 @@
-package goose
+package main
 
 import (
 	"database/sql"
@@ -12,7 +12,7 @@ var (
 	maxVersion         = int64((1 << 63) - 1)
 )
 
-func Run(command string, db *sql.DB, dir string, args ...string) error {
+func run(command string, db *sql.DB, dir string, args ...string) error {
 	switch command {
 	case "up":
 		if err := Up(db, dir); err != nil {
@@ -24,7 +24,7 @@ func Run(command string, db *sql.DB, dir string, args ...string) error {
 		}
 	case "create":
 		if len(args) == 0 {
-			return fmt.Errorf("create must be of form: goose [OPTIONS] DRIVER DBSTRING create NAME [go|sql]")
+			return fmt.Errorf("create must be of form: mig [OPTIONS] DRIVER DBSTRING create NAME [go|sql]")
 		}
 
 		migrationType := "go"

@@ -1,4 +1,4 @@
--- +goose Up
+-- +mig Up
 CREATE TABLE users (
     id int NOT NULL PRIMARY KEY,
     username text,
@@ -8,7 +8,7 @@ CREATE TABLE users (
 
 INSERT INTO users VALUES
 (0, 'root', '', ''),
-(1, 'vojtechvitek', 'Vojtech', 'Vitek');
+(1, 'sfreud', 'Sigmund', 'Freud');
 
--- +goose Down
+-- +mig Down
 DROP TABLE users;

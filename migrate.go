@@ -1,4 +1,4 @@
-package goose
+package mig
 
 import (
 	"database/sql"
@@ -26,7 +26,7 @@ func (ms Migrations) Len() int      { return len(ms) }
 func (ms Migrations) Swap(i, j int) { ms[i], ms[j] = ms[j], ms[i] }
 func (ms Migrations) Less(i, j int) bool {
 	if ms[i].Version == ms[j].Version {
-		log.Fatalf("goose: duplicate version %v detected:\n%v\n%v", ms[i].Version, ms[i].Source, ms[j].Source)
+		log.Fatalf("mig: duplicate version %v detected:\n%v\n%v", ms[i].Version, ms[i].Source, ms[j].Source)
 	}
 	return ms[i].Version < ms[j].Version
 }
@@ -75,9 +75,9 @@ func AddMigration(up func(*sql.Tx) error, down func(*sql.Tx) error) {
 	goMigrations = append(goMigrations, migration)
 }
 
-// collect all the valid looking migration scripts in the
+// Collect all the valid looking migration scripts in the
 // migrations folder and go func registry, and key them by version
-func collectMigrations(dirpath string, current, target int64) (Migrations, error) {
+func CollectMigrations(dirpath string, current, target int64) (Migrations, error) {
 	var migrations Migrations
 
 	// extract the numeric component of each migration,
@@ -191,7 +191,7 @@ func EnsureDBVersion(db *sql.DB) (int64, error) {
 	panic("unreachable")
 }
 
-// Create the goose_db_version table
+// Create the mig_migrations table
 // and insert the initial 0 value into it
 func createVersionTable(db *sql.DB) error {
 	txn, err := db.Begin()

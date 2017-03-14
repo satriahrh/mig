@@ -1,16 +1,18 @@
-package goose
+package main
 
 import (
 	"database/sql"
 	"fmt"
+
+	"github.com/nullbio/mig"
 )
 
 func Version(db *sql.DB, dir string) error {
-	current, err := GetDBVersion(db)
+	current, err := mig.GetDBVersion(db)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("goose: dbversion %v\n", current)
+	fmt.Printf("mig: version %v\n", current)
 	return nil
 }

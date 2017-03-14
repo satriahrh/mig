@@ -1,14 +1,16 @@
-package goose
+package main
 
 import (
 	"database/sql"
 	"fmt"
 	"time"
+
+	"github.com/nullbio/mig"
 )
 
 // Create writes a new blank migration file.
 func Create(db *sql.DB, dir, name, migrationType string) error {
-	path, err := CreateMigration(name, migrationType, dir, time.Now())
+	path, err := mig.CreateMigration(name, migrationType, dir, time.Now())
 	if err != nil {
 		return err
 	}
