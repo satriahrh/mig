@@ -3,7 +3,9 @@ package main
 import (
 	"errors"
 	"math"
+	"os"
 
+	"github.com/nullbio/mig"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -24,6 +26,9 @@ mig create add_users`,
 }
 
 func init() {
+	// Set the mig library logger to os.Stdout
+	mig.Log = os.Stdout
+
 	rootCmd.Flags().BoolP("version", "", false, "Print the mig tool version")
 	viper.BindPFlags(rootCmd.Flags())
 }

@@ -6,11 +6,11 @@ mig is a database migration tool. Manage your database's evolution by creating i
 
 ### Goals of this fork
 
-This is a fork of https://github.com/pressly/goose with some major reworks to 
-the project structure, many necessary bug fixes and general improvements to
+This is a heavily restructured and rewritten fork of https://github.com/pressly/goose
+which includes many necessary bug fixes and general improvements to
 better suit the Go abcweb framework https://github.com/nullbio/abcweb --
 although feel free to use this migration tool as a standalone or in your own 
-projects even if you do not use abcweb.
+projects even if you do not use abcweb, it by no means requires it.
 
 # Install
 
@@ -19,38 +19,40 @@ projects even if you do not use abcweb.
 # Usage
 
 ```
-Usage: goose [OPTIONS] DRIVER DBSTRING COMMAND
+mig is a database migration tool for Postgres, MySQL and SQLite3.
+
+Usage:
+  mig [command]
 
 Examples:
-    goose postgres "user=postgres dbname=postgres sslmode=disable" up
-    goose mysql "user:password@/dbname" down
-    goose sqlite3 ./foo.db status
+mig postgres "user=postgres dbname=postgres sslmode=disable" up
+mig mysql "user:password@/dbname" down
+mig sqlite3 ./foo.db status
+mig create add_users
 
-Options:
-  -dir string
-    	directory with migration files (default ".")
+Available Commands:
+  create      Create a blank migration template
+  down        Roll back the version by one
+  help        Help about any command
+  redo        Re-run the latest migration
+  status      Dump the migration status for the database
+  up          Migrate the database to the most recent version available
+  up          Migrate the database to the most recent version available
 
-Commands:
-    up         Migrate the DB to the most recent version available
-    down       Roll back the version by 1
-    redo       Re-run the latest migration
-    status     Dump the migration status for the current DB
-    dbversion  Print the current version of the database
-    create     Creates a blank migration template
+Flags:
+      --version   Print the mig tool version
+
+Use "mig [command] --help" for more information about a command.
 ```
 ## create
 
-Create a new Go migration.
+Create a new SQL migration.
 
-    $ goose create AddSomeColumns
-    $ goose: created db/migrations/20130106093224_AddSomeColumns.go
+    $ mig create add_users
+    $ Created db/migrations/20130106093224_add_users.sql
 
-Edit the newly created script to define the behavior of your migration.
-
-You can also create an SQL migration:
-
-    $ goose create AddSomeColumns sql
-    $ goose: created db/migrations/20130106093224_AddSomeColumns.sql
+Edit the newly created script to define the behavior of your migration. Your
+SQL statements should go below the Up and Down comments.
 
 ## up
 

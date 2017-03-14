@@ -15,17 +15,17 @@ import (
 	"time"
 )
 
-type MigrationRecord struct {
-	VersionId int64
-	TStamp    time.Time
-	IsApplied bool // was this a result of up() or down()
+type migrationRecord struct {
+	versionId int64
+	tstamp    time.Time
+	isApplied bool // was this a result of up() or down()
 }
 
-type Migration struct {
-	Version  int64
-	Next     int64  // next version, or -1 if none
-	Previous int64  // previous version, -1 if none
-	Source   string // path to .sql script
+type migration struct {
+	version  int64
+	next     int64  // next version, or -1 if none
+	previous int64  // previous version, -1 if none
+	source   string // path to .sql script
 }
 
 const sqlCmdPrefix = "-- +mig "
@@ -37,30 +37,30 @@ var migrationTemplate = template.Must(template.New("mig.sql-migration").Parse(`
 
 `))
 
-func (m *Migration) String() string {
-	return fmt.Sprintf(m.Source)
+func (m *migration) String() string {
+	return fmt.Sprintf(m.source)
 }
 
-func (m *Migration) Up(db *sql.DB) (string, error) {
+func (m *migration) up(db *sql.DB) (string, error) {
 	return m.run(db, true)
 }
 
-func (m *Migration) Down(db *sql.DB) (string, error) {
+func (m *migration) down(db *sql.DB) (string, error) {
 	return m.run(db, false)
 }
 
-func (m *Migration) run(db *sql.DB, direction bool) (name string, err error) {
-	if err := runMigration(db, m.Source, m.Version, direction); err != nil {
+func (m *migration) run(db *sql.DB, direction bool) (name string, err error) {
+	if err := runMigration(db, m.source, m.version, direction); err != nil {
 		return "", err
 	}
 
-	return filepath.Base(m.Source), nil
+	return filepath.Base(m.source), nil
 }
 
 // look for migration scripts with names in the form:
 //  XXX_descriptivename.sql
 // where XXX specifies the version number
-func NumericComponent(name string) (int64, error) {
+func numericComponent(name string) (int64, error) {
 	base := filepath.Base(name)
 
 	if ext := filepath.Ext(base); ext != ".sql" {
@@ -78,18 +78,6 @@ func NumericComponent(name string) (int64, error) {
 	}
 
 	return n, e
-}
-
-func CreateMigration(name, dir string, t time.Time) (path string, err error) {
-	timestamp := t.Format("20060102150405")
-	filename := fmt.Sprintf("%v_%v.sql", timestamp, name)
-
-	fpath := filepath.Join(dir, filename)
-	tmpl := migrationTemplate
-
-	path, err = writeTemplateToFile(fpath, tmpl, timestamp)
-
-	return
 }
 
 // Update the version table for the given migration,

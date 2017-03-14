@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 
 	"github.com/nullbio/mig"
@@ -25,15 +24,15 @@ func init() {
 }
 
 func versionRunE(cmd *cobra.Command, args []string) error {
-	return nil
-}
-
-func Version(db *sql.DB, dir string) error {
-	current, err := mig.GetDBVersion(db)
+	driver, conn, err := getConnArgs(args)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("mig: version %v\n", current)
-	return nil
+	version, err := mig.Version(driver, conn)
+	if err != nil {
+		fmt.Printf("Version %d\n", version)
+	}
+
+	return err
 }

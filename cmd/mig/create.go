@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/nullbio/mig"
 	"github.com/spf13/cobra"
@@ -32,12 +31,12 @@ func createRunE(cmd *cobra.Command, args []string) error {
 		return errors.New("no migration name provided")
 	}
 
-	path, err := mig.CreateMigration(args[0], viper.GetString("dir"), time.Now())
+	path, err := mig.Create(args[0], viper.GetString("dir"))
 	if err != nil {
 		return err
 	}
 
-	fmt.Println(fmt.Sprintf("Created migration %s", path))
+	fmt.Println(fmt.Sprintf("Created %s", path))
 
 	return nil
 }

@@ -4,9 +4,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"os"
+	"io"
+	"io/ioutil"
 	"path/filepath"
 	"sort"
+	"time"
 )
 
 var (
@@ -14,60 +16,64 @@ var (
 	ErrNoNextVersion    = errors.New("no next version found")
 )
 
-var Log = os.Stdout
+var Log io.Writer
 
-type Migrations []*Migration
+type migrations []*migration
 
-// helpers so we can use pkg sort
-func (ms Migrations) Len() int      { return len(ms) }
-func (ms Migrations) Swap(i, j int) { ms[i], ms[j] = ms[j], ms[i] }
-func (ms Migrations) Less(i, j int) bool {
-	if ms[i].Version == ms[j].Version {
-		panic(fmt.Sprintf("mig: duplicate version %v detected:\n%v\n%v", ms[i].Version, ms[i].Source, ms[j].Source))
-	}
-	return ms[i].Version < ms[j].Version
+func init() {
+	Log = ioutil.Discard
 }
 
-func (ms Migrations) Current(current int64) (*Migration, error) {
-	for i, migration := range ms {
-		if migration.Version == current {
-			return ms[i], nil
+// helpers so we can use pkg sort
+func (m migrations) Len() int      { return len(m) }
+func (m migrations) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
+func (m migrations) Less(i, j int) bool {
+	if m[i].version == m[j].version {
+		panic(fmt.Sprintf("mig: duplicate version %v detected:\n%v\n%v", m[i].version, m[i].source, m[j].source))
+	}
+	return m[i].version < m[j].version
+}
+
+func (m migrations) current(current int64) (*migration, error) {
+	for i, migration := range m {
+		if migration.version == current {
+			return m[i], nil
 		}
 	}
 
 	return nil, ErrNoCurrentVersion
 }
 
-func (ms Migrations) Next(current int64) (*Migration, error) {
-	for i, migration := range ms {
-		if migration.Version > current {
-			return ms[i], nil
+func (m migrations) next(current int64) (*migration, error) {
+	for i, migration := range m {
+		if migration.version > current {
+			return m[i], nil
 		}
 	}
 
 	return nil, ErrNoNextVersion
 }
 
-func (ms Migrations) Last() (*Migration, error) {
-	if len(ms) == 0 {
+func (m migrations) last() (*migration, error) {
+	if len(m) == 0 {
 		return nil, ErrNoNextVersion
 	}
 
-	return ms[len(ms)-1], nil
+	return m[len(m)-1], nil
 }
 
-func (ms Migrations) String() string {
+func (m migrations) String() string {
 	str := ""
-	for _, m := range ms {
-		str += fmt.Sprintln(m)
+	for _, migration := range m {
+		str += fmt.Sprintln(migration)
 	}
 	return str
 }
 
 // collect all the valid looking migration scripts in the migrations folder,
 // and order them by version.
-func collectMigrations(dirpath string, current, target int64) (Migrations, error) {
-	var migrations Migrations
+func collectMigrations(dirpath string, current, target int64) (migrations, error) {
+	var migrations migrations
 
 	// extract the numeric component of each migration,
 	// filter out any uninteresting files,
@@ -78,12 +84,12 @@ func collectMigrations(dirpath string, current, target int64) (Migrations, error
 	}
 
 	for _, file := range files {
-		v, err := NumericComponent(file)
+		v, err := numericComponent(file)
 		if err != nil {
 			return nil, err
 		}
 		if versionFilter(v, current, target) {
-			migration := &Migration{Version: v, Next: -1, Previous: -1, Source: file}
+			migration := &migration{version: v, next: -1, previous: -1, source: file}
 			migrations = append(migrations, migration)
 		}
 	}
@@ -95,7 +101,7 @@ func collectMigrations(dirpath string, current, target int64) (Migrations, error
 
 // sortAndConnectMigrations sorts the migrations based on the version numbers
 // and creates a linked list between each migration.
-func sortAndConnectMigrations(migrations Migrations) Migrations {
+func sortAndConnectMigrations(migrations migrations) migrations {
 	// Sort the migrations based on version
 	sort.Sort(migrations)
 
@@ -104,10 +110,10 @@ func sortAndConnectMigrations(migrations Migrations) Migrations {
 	for i, m := range migrations {
 		prev := int64(-1)
 		if i > 0 {
-			prev = migrations[i-1].Version
-			migrations[i-1].Next = m.Version
+			prev = migrations[i-1].version
+			migrations[i-1].next = m.version
 		}
-		migrations[i].Previous = prev
+		migrations[i].previous = prev
 	}
 
 	return migrations
@@ -168,15 +174,15 @@ func getVersion(db *sql.DB) (int64, error) {
 	toSkip := make([]int64, 0)
 
 	for rows.Next() {
-		var row MigrationRecord
-		if err = rows.Scan(&row.VersionId, &row.IsApplied); err != nil {
-			return 0, errors.New("error scanning rows:", err)
+		var row migrationRecord
+		if err = rows.Scan(&row.versionId, &row.isApplied); err != nil {
+			return 0, fmt.Errorf("error scanning rows: %s", err)
 		}
 
 		// have we already marked this version to be skipped?
 		skip := false
 		for _, v := range toSkip {
-			if v == row.VersionId {
+			if v == row.versionId {
 				skip = true
 				break
 			}
@@ -187,13 +193,33 @@ func getVersion(db *sql.DB) (int64, error) {
 		}
 
 		// if version has been applied we're done
-		if row.IsApplied {
-			return row.VersionId, nil
+		if row.isApplied {
+			return row.versionId, nil
 		}
 
 		// latest version of migration has not been applied.
-		toSkip = append(toSkip, row.VersionId)
+		toSkip = append(toSkip, row.versionId)
 	}
 
 	panic("unreachable")
+}
+
+func getMigrationStatus(db *sql.DB, version int64) string {
+	var row migrationRecord
+	q := fmt.Sprintf("SELECT tstamp, is_applied FROM mig_migrations WHERE version_id=%d ORDER BY tstamp DESC LIMIT 1", version)
+	e := db.QueryRow(q).Scan(&row.tstamp, &row.isApplied)
+
+	if e != nil && e != sql.ErrNoRows {
+		panic(e)
+	}
+
+	var appliedAt string
+
+	if row.isApplied {
+		appliedAt = row.tstamp.Format(time.ANSIC)
+	} else {
+		appliedAt = "Pending"
+	}
+
+	return appliedAt
 }
