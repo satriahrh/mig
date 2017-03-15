@@ -28,7 +28,7 @@ func Create(name, dir string) (string, error) {
 }
 
 // Down rolls back the version by one
-func Down(driver string, conn string, dir string) (name string, err error) {
+func Down(driver, conn, dir string) (name string, err error) {
 	db, err := sql.Open(driver, conn)
 	if err != nil {
 		return "", err
@@ -59,7 +59,7 @@ func Down(driver string, conn string, dir string) (name string, err error) {
 
 // DownAll rolls back all migrations.
 // Logs success messages to global writer variable Log.
-func DownAll(driver string, conn string, dir string) (int, error) {
+func DownAll(driver, conn, dir string) (int, error) {
 	count := 0
 
 	db, err := sql.Open(driver, conn)
@@ -100,7 +100,7 @@ func DownAll(driver string, conn string, dir string) (int, error) {
 }
 
 // Up migrates to the highest version available
-func Up(driver string, conn string, dir string) (int, error) {
+func Up(driver, conn, dir string) (int, error) {
 	count := 0
 
 	db, err := sql.Open(driver, conn)
@@ -141,7 +141,7 @@ func Up(driver string, conn string, dir string) (int, error) {
 }
 
 // UpOne migrates one version
-func UpOne(driver string, conn string, dir string) (name string, err error) {
+func UpOne(driver, conn, dir string) (name string, err error) {
 	db, err := sql.Open(driver, conn)
 	if err != nil {
 		return "", err
@@ -171,7 +171,7 @@ func UpOne(driver string, conn string, dir string) (name string, err error) {
 }
 
 // Redo re-runs the latest migration.
-func Redo(driver string, conn string, dir string) (string, error) {
+func Redo(driver, conn, dir string) (string, error) {
 	db, err := sql.Open(driver, conn)
 	if err != nil {
 		return "", err
@@ -208,10 +208,12 @@ type migrationStatus struct {
 	Applied string
 	Name    string
 }
+
+// status is a slice of migrationStatus
 type status []migrationStatus
 
-// Return the status of each migration
-func Status(driver string, conn string, dir string) (status, error) {
+// Status returns the status of each migration
+func Status(driver, conn, dir string) (status, error) {
 	s := status{}
 
 	db, err := sql.Open(driver, conn)
@@ -244,8 +246,8 @@ func Status(driver string, conn string, dir string) (status, error) {
 	return s, nil
 }
 
-// Return the current migration version
-func Version(driver string, conn string) (int64, error) {
+// Version returns the current migration version
+func Version(driver, conn string) (int64, error) {
 	db, err := sql.Open(driver, conn)
 	if err != nil {
 		return 0, err

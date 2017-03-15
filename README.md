@@ -44,7 +44,20 @@ Flags:
 
 Use "mig [command] --help" for more information about a command.
 ```
-## create
+
+## Supported Databases
+
+mig supports MySQL, Postgres and SQLite3. The drivers used are:
+
+https://github.com/go-sql-driver/mysql
+https://github.com/lib/pq
+https://github.com/mattn/go-sqlite3
+
+See these drivers for details on the format of their connection strings.
+
+## Couple of example runs
+
+### create
 
 Create a new SQL migration.
 
@@ -54,63 +67,23 @@ Create a new SQL migration.
 Edit the newly created script to define the behavior of your migration. Your
 SQL statements should go below the Up and Down comments.
 
-## up
+An example command run:
+
+### up
 
 Apply all available migrations.
 
-    $ goose up
-    $ goose: migrating db environment 'development', current version: 0, target: 3
-    $ OK    001_basics.sql
-    $ OK    002_next.sql
-    $ OK    003_and_again.go
+    $ mig up postgres "user=username password=password dbname=database"
+	$ Success   20170314220650_add_dogs.sql
+	$ Success   20170314221501_add_cats.sql
+	$ Success   2 migrations
 
-## down
-
-Roll back a single migration from the current version.
-
-    $ goose down
-    $ goose: migrating db environment 'development', current version: 3, target: 2
-    $ OK    003_and_again.go
-
-## redo
-
-Roll back the most recently applied migration, then run it again.
-
-    $ goose redo
-    $ goose: migrating db environment 'development', current version: 3, target: 2
-    $ OK    003_and_again.go
-    $ goose: migrating db environment 'development', current version: 2, target: 3
-    $ OK    003_and_again.go
-
-## status
-
-Print the status of all migrations:
-
-    $ goose status
-    $ goose: status for environment 'development'
-    $   Applied At                  Migration
-    $   =======================================
-    $   Sun Jan  6 11:25:03 2013 -- 001_basics.sql
-    $   Sun Jan  6 11:25:03 2013 -- 002_next.sql
-    $   Pending                  -- 003_and_again.go
-
-## dbversion
-
-Print the current version of the database:
-
-    $ goose dbversion
-    $ goose: dbversion 002
-
-# Migrations
-
-goose supports migrations written in SQL or in Go.
-
-## SQL Migrations
+## Migrations
 
 A sample SQL migration looks like:
 
 ```sql
--- +goose Up
+-- +mig Up
 CREATE TABLE post (
     id int NOT NULL,
     title text,
@@ -118,19 +91,19 @@ CREATE TABLE post (
     PRIMARY KEY(id)
 );
 
--- +goose Down
+-- +mig Down
 DROP TABLE post;
 ```
 
-Notice the annotations in the comments. Any statements following `-- +goose Up` will be executed as part of a forward migration, and any statements following `-- +goose Down` will be executed as part of a rollback.
+Notice the annotations in the comments. Any statements following `-- +mig Up` will be executed as part of a forward migration, and any statements following `-- +mig Down` will be executed as part of a rollback.
 
-By default, SQL statements are delimited by semicolons - in fact, query statements must end with a semicolon to be properly recognized by goose.
+By default, SQL statements are delimited by semicolons - in fact, query statements must end with a semicolon to be properly recognized by mig.
 
-More complex statements (PL/pgSQL) that have semicolons within them must be annotated with `-- +goose StatementBegin` and `-- +goose StatementEnd` to be properly recognized. For example:
+More complex statements (PL/pgSQL) that have semicolons within them must be annotated with `-- +mig StatementBegin` and `-- +mig StatementEnd` to be properly recognized. For example:
 
 ```sql
--- +goose Up
--- +goose StatementBegin
+-- +mig Up
+-- +mig StatementBegin
 CREATE OR REPLACE FUNCTION histories_partition_creation( DATE, DATE )
 returns void AS $$
 DECLARE
@@ -151,48 +124,47 @@ BEGIN
 END;         -- FUNCTION END
 $$
 language plpgsql;
--- +goose StatementEnd
+-- +mig StatementEnd
 ```
 
-## Go Migrations
+## Library functions
 
-Import `github.com/pressly/goose` from your own project (see [example](./example/migrations-go/cmd/main.go)), register migration functions and run goose command (ie. `goose.Up(db *sql.DB, dir string)`).
-
-A [sample Go migration 00002_users_add_email.go file](./example/migrations-go/00002_users_add_email.go) looks like:
 
 ```go
-package migrations
+// Global io.Writer variable that can be changed to get incremental success 
+// messages from function calls that process more than one migration,
+// for example Up and DownAll. Defaults to ioutil.Discard.
+var mig.Log
 
-import (
-	"database/sql"
+// Create a templated migration file in dir
+mig.Create(name, dir string) (name string, err error)
 
-	"github.com/pressly/goose"
-)
+// Down rolls back the version by one
+mig.Down(driver, conn, dir string) (name string, err error)
 
-func init() {
-	goose.AddMigration(Up, Down)
-}
+// DownAll rolls back all migrations.
+// Logs success messages to global writer variable Log.
+mig.DownAll(driver, conn, dir string) (count int, err error)
 
-func Up(tx *sql.Tx) error {
-	_, err := tx.Query("ALTER TABLE users ADD COLUMN email text DEFAULT '' NOT NULL;")
-	if err != nil {
-		return err
-	}
-	return nil
-}
+// Up migrates to the highest version available
+mig.Up(driver, conn, dir string) (count int, err error)
 
-func Down(tx *sql.Tx) error {
-	_, err := tx.Query("ALTER TABLE users DROP COLUMN email;")
-	if err != nil {
-		return err
-	}
-	return nil
-}
+// UpOne migrates one version
+mig.UpOne(driver, conn, dir string) (name string, err error)
+
+// Redo re-runs the latest migration.
+mig.Redo(driver, conn, dir string) (name string, err error)
+
+// Return the status of each migration
+mig.Status(driver, conn, dir string) (status, error)
+
+// Return the current migration version
+mig.Version(driver, conn string) (version int64, err error)
 ```
 
 ## License
 
 Licensed under [MIT License](./LICENSE)
 
-[GoDoc]: https://godoc.org/github.com/pressly/goose
-[GoDoc Widget]: https://godoc.org/github.com/pressly/goose?status.svg
+[GoDoc]: https://godoc.org/github.com/nullbio/mig
+[GoDoc Widget]: https://godoc.org/github.com/nullbio/mig?status.svg
