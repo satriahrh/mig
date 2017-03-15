@@ -52,7 +52,9 @@ Use "mig [command] --help" for more information about a command.
 mig supports MySQL, Postgres and SQLite3. The drivers used are:
 
 https://github.com/go-sql-driver/mysql
+
 https://github.com/lib/pq
+
 https://github.com/mattn/go-sqlite3
 
 See these drivers for details on the format of their connection strings.
