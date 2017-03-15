@@ -33,11 +33,13 @@ mig create add_users
 Available Commands:
   create      Create a blank migration template
   down        Roll back the version by one
+  downall     Roll back all migrations
   help        Help about any command
   redo        Re-run the latest migration
   status      Dump the migration status for the database
   up          Migrate the database to the most recent version available
-  up          Migrate the database to the most recent version available
+  upone       Migrate the database by one version
+  version     Print the current version of the database
 
 Flags:
       --version   Print the mig tool version
