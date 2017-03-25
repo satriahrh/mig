@@ -3,6 +3,7 @@ package mig
 import (
 	"database/sql"
 	"fmt"
+	"os"
 )
 
 // sqlDialect abstracts the details of specific SQL dialects
@@ -26,7 +27,9 @@ func setDialect(d string) error {
 	case "mysql":
 		dialect = &mySQLDialect{}
 	case "sqlite3":
-		dialect = &sqlite3Dialect{}
+		fmt.Println("sqlite3 not supported")
+		os.Exit(1)
+		//dialect = &sqlite3Dialect{}
 	default:
 		return fmt.Errorf("%q: unknown dialect", d)
 	}

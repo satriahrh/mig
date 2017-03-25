@@ -12,7 +12,7 @@ var downCmd = &cobra.Command{
 	Use:     "down",
 	Short:   "Roll back the version by one",
 	Long:    "Roll back the version by one",
-	Example: `mig down sqlite3 ./foo.db`,
+	Example: `mig down mysql "user:password@/dbname"`,
 	RunE:    downRunE,
 }
 
@@ -20,7 +20,7 @@ var downAllCmd = &cobra.Command{
 	Use:     "downall",
 	Short:   "Roll back all migrations",
 	Long:    "Roll back all migrations",
-	Example: `mig downall sqlite3 ./foo.db`,
+	Example: `mig downall mysql "user:password@/dbname"`,
 	RunE:    downAllRunE,
 }
 

@@ -17,11 +17,10 @@ var (
 
 var rootCmd = &cobra.Command{
 	Use:   "mig",
-	Short: "mig is a database migration tool for Postgres, MySQL and SQLite3.",
-	Long:  "mig is a database migration tool for Postgres, MySQL and SQLite3.",
-	Example: `mig postgres "user=postgres dbname=postgres sslmode=disable" up
-mig mysql "user:password@/dbname" down
-mig sqlite3 ./foo.db status
+	Short: "mig is a database migration tool for Postgres and MySQL.",
+	Long:  "mig is a database migration tool for Postgres and MySQL.",
+	Example: `mig up postgres "user=postgres dbname=postgres sslmode=disable"
+mig down mysql "user:password@/dbname"
 mig create add_users`,
 }
 

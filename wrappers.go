@@ -11,8 +11,6 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	// postgres driver
 	_ "github.com/lib/pq"
-	// sqlite3 driver
-	_ "github.com/mattn/go-sqlite3"
 )
 
 // Create a templated migration file in dir

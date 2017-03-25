@@ -19,7 +19,7 @@ projects even if you do not use abcweb, it by no means requires it.
 # Usage
 
 ```
-mig is a database migration tool for Postgres, MySQL and SQLite3.
+mig is a database migration tool for Postgres and MySQL.
 
 Usage:
   mig [command]
@@ -27,7 +27,6 @@ Usage:
 Examples:
 mig postgres "user=postgres dbname=postgres sslmode=disable" up
 mig mysql "user:password@/dbname" down
-mig sqlite3 ./foo.db status
 mig create add_users
 
 Available Commands:
@@ -49,13 +48,11 @@ Use "mig [command] --help" for more information about a command.
 
 ## Supported Databases
 
-mig supports MySQL, Postgres and SQLite3. The drivers used are:
+mig supports MySQL and Postgres. The drivers used are:
 
 https://github.com/go-sql-driver/mysql
 
 https://github.com/lib/pq
-
-https://github.com/mattn/go-sqlite3
 
 See these drivers for details on the format of their connection strings.
 
