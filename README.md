@@ -2,7 +2,9 @@
 
 mig is a database migration tool. Manage your database's evolution by creating incremental SQL files.
 
-[![GoDoc Widget]][GoDoc]
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/volatiletech/mig/blob/master/LICENSE)
+[![GoDoc](https://godoc.org/github.com/volatiletech/mig?status.svg)](https://godoc.org/github.com/volatiletech/mig)
+[![Go Report Card](https://goreportcard.com/badge/volatiletech/mig)](http://goreportcard.com/report/volatiletech/mig)
 
 ### Goals of this fork
 
@@ -45,6 +47,9 @@ Flags:
 
 Use "mig [command] --help" for more information about a command.
 ```
+
+Note: If you're using [ABCWeb](https://github.com/volatiletech/abcweb) the `mig`
+commands are built into the `abcweb` tool. See `abcweb --help` for usage.
 
 ## Supported Databases
 
@@ -162,10 +167,3 @@ mig.Status(driver, conn, dir string) (status, error)
 // Return the current migration version
 mig.Version(driver, conn string) (version int64, err error)
 ```
-
-## License
-
-Licensed under [MIT License](./LICENSE)
-
-[GoDoc]: https://godoc.org/github.com/nullbio/mig
-[GoDoc Widget]: https://godoc.org/github.com/nullbio/mig?status.svg
