@@ -4,13 +4,13 @@ import (
 	"testing"
 )
 
-func newMigration(v int64, src string) *Migration {
-	return &Migration{Version: v, Previous: -1, Next: -1, Source: src}
+func newMigration(v int64, src string) *migration {
+	return &migration{version: v, previous: -1, next: -1, source: src}
 }
 
 func TestMigrationSort(t *testing.T) {
 
-	ms := Migrations{}
+	ms := migrations{}
 
 	// insert in any order
 	ms = append(ms, newMigration(20120000, "test"))
@@ -25,10 +25,10 @@ func TestMigrationSort(t *testing.T) {
 	validateMigrationSort(t, ms, sorted)
 }
 
-func validateMigrationSort(t *testing.T, ms Migrations, sorted []int64) {
+func validateMigrationSort(t *testing.T, ms migrations, sorted []int64) {
 
 	for i, m := range ms {
-		if sorted[i] != m.Version {
+		if sorted[i] != m.version {
 			t.Error("incorrect sorted version")
 		}
 
@@ -36,21 +36,21 @@ func validateMigrationSort(t *testing.T, ms Migrations, sorted []int64) {
 
 		if i == 0 {
 			prev = -1
-			next = ms[i+1].Version
+			next = ms[i+1].version
 		} else if i == len(ms)-1 {
-			prev = ms[i-1].Version
+			prev = ms[i-1].version
 			next = -1
 		} else {
-			prev = ms[i-1].Version
-			next = ms[i+1].Version
+			prev = ms[i-1].version
+			next = ms[i+1].version
 		}
 
-		if m.Next != next {
-			t.Errorf("mismatched Next. v: %v, got %v, wanted %v\n", m, m.Next, next)
+		if m.next != next {
+			t.Errorf("mismatched next. v: %v, got %v, wanted %v\n", m, m.next, next)
 		}
 
-		if m.Previous != prev {
-			t.Errorf("mismatched Previous v: %v, got %v, wanted %v\n", m, m.Previous, prev)
+		if m.previous != prev {
+			t.Errorf("mismatched previous v: %v, got %v, wanted %v\n", m, m.previous, prev)
 		}
 	}
 
