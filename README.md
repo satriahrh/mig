@@ -27,8 +27,8 @@ Usage:
   mig [command]
 
 Examples:
-mig postgres "user=postgres dbname=postgres sslmode=disable" up
-mig mysql "user:password@/dbname" down
+mig up postgres "user=postgres dbname=postgres sslmode=disable"
+mig down mysql "user:password@/dbname"
 mig create add_users
 
 Available Commands:
@@ -36,7 +36,8 @@ Available Commands:
   down        Roll back the version by one
   downall     Roll back all migrations
   help        Help about any command
-  redo        Re-run the latest migration
+  redo        Down then up the latest migration
+  redoall     Down then up all migrations
   status      Dump the migration status for the database
   up          Migrate the database to the most recent version available
   upone       Migrate the database by one version
