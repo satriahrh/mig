@@ -8,7 +8,7 @@ mig is a database migration tool. Manage your database's evolution by creating i
 
 ### Goals of this fork
 
-This is a heavily restructured and rewritten fork of https://github.com/pressly/goose
+This is a restructured and modified fork of https://github.com/pressly/goose
 which includes many necessary bug fixes and general improvements to
 better suit the Go abcweb framework https://github.com/nullbio/abcweb --
 although feel free to use this migration tool as a standalone or in your own 
