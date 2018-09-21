@@ -20,6 +20,12 @@ func getDialect() sqlDialect {
 	return dialect
 }
 
+// SetDialect sets the current driver dialect for all future calls
+// to the library.
+func SetDialect(d string) error {
+	return setDialect(d)
+}
+
 func setDialect(d string) error {
 	switch d {
 	case "postgres":

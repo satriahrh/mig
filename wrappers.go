@@ -37,6 +37,12 @@ func Down(driver, conn, dir string) (name string, err error) {
 		return "", err
 	}
 
+	return DownDB(db, dir)
+}
+
+// DownDB rolls back the version by one
+// Expects SetDialect to be called beforehand.
+func DownDB(db *sql.DB, dir string) (name string, err error) {
 	currentVersion, err := getVersion(db)
 	if err != nil {
 		return "", err
@@ -58,17 +64,24 @@ func Down(driver, conn, dir string) (name string, err error) {
 // DownAll rolls back all migrations.
 // Logs success messages to global writer variable Log.
 func DownAll(driver, conn, dir string) (int, error) {
-	count := 0
-
 	db, err := sql.Open(driver, conn)
 	if err != nil {
-		return count, err
+		return 0, err
 	}
 
 	err = setDialect(driver)
 	if err != nil {
-		return count, err
+		return 0, err
 	}
+
+	return DownAllDB(db, dir)
+}
+
+// DownAllDB rolls back all migrations.
+// Logs success messages to global writer variable Log.
+// Expects SetDialect to be called beforehand.
+func DownAllDB(db *sql.DB, dir string) (int, error) {
+	count := 0
 
 	migrations, err := collectMigrations(dir, 0, math.MaxInt64)
 	if err != nil {
@@ -99,17 +112,23 @@ func DownAll(driver, conn, dir string) (int, error) {
 
 // Up migrates to the highest version available
 func Up(driver, conn, dir string) (int, error) {
-	count := 0
-
 	db, err := sql.Open(driver, conn)
 	if err != nil {
-		return count, err
+		return 0, err
 	}
 
 	err = setDialect(driver)
 	if err != nil {
-		return count, err
+		return 0, err
 	}
+
+	return UpDB(db, dir)
+}
+
+// UpDB migrates to the highest version available
+// Expects SetDialect to be called beforehand.
+func UpDB(db *sql.DB, dir string) (int, error) {
+	count := 0
 
 	migrations, err := collectMigrations(dir, 0, math.MaxInt64)
 	if err != nil {
@@ -150,6 +169,12 @@ func UpOne(driver, conn, dir string) (name string, err error) {
 		return "", err
 	}
 
+	return UpOneDB(db, dir)
+}
+
+// UpOneDB migrates one version
+// Expects SetDialect to be called beforehand.
+func UpOneDB(db *sql.DB, dir string) (name string, err error) {
 	currentVersion, err := getVersion(db)
 	if err != nil {
 		return "", err
@@ -180,6 +205,12 @@ func Redo(driver, conn, dir string) (string, error) {
 		return "", err
 	}
 
+	return RedoDB(db, dir)
+}
+
+// RedoDB re-runs the latest migration.
+// Expects SetDialect to be called beforehand.
+func RedoDB(db *sql.DB, dir string) (string, error) {
 	currentVersion, err := getVersion(db)
 	if err != nil {
 		return "", err
@@ -224,6 +255,14 @@ func Status(driver, conn, dir string) (status, error) {
 		return s, err
 	}
 
+	return StatusDB(db, dir)
+}
+
+// StatusDB returns the status of each migration
+// Expects SetDialect to be called beforehand
+func StatusDB(db *sql.DB, dir string) (status, error) {
+	s := status{}
+
 	migrations, err := collectMigrations(dir, 0, math.MaxInt64)
 	if err != nil {
 		return s, err
@@ -256,5 +295,11 @@ func Version(driver, conn string) (int64, error) {
 		return 0, err
 	}
 
+	return VersionDB(db)
+}
+
+// VersionDB returns the current migration version
+// Expects SetDialect to be called beforehand
+func VersionDB(db *sql.DB) (int64, error) {
 	return getVersion(db)
 }
