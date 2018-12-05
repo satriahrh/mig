@@ -16,7 +16,7 @@ projects even if you do not use abcweb, it by no means requires it.
 
 # Install
 
-    $ go get -u github.com/nullbio/mig/...
+    $ go get -u github.com/volatiletech/mig/...
 
 # Usage
 
