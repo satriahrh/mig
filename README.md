@@ -1,35 +1,30 @@
 # mig
 
-mig is a database migration tool. Manage your database's evolution by creating incremental SQL files.
+mig is a database migration tool. Manage your database's evolution by creating incremental SQL files. Forked from [volatiletech/mig](https://github.com/volatiletech/mig)
 
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/volatiletech/mig/blob/master/LICENSE)
-[![GoDoc](https://godoc.org/github.com/volatiletech/mig?status.svg)](https://godoc.org/github.com/volatiletech/mig)
-[![Go Report Card](https://goreportcard.com/badge/volatiletech/mig)](http://goreportcard.com/report/volatiletech/mig)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/satriahrh/mig/blob/master/LICENSE)
+[![Go Report Card](https://goreportcard.com/badge/satriahrh/mig)](http://goreportcard.com/report/satriahrh/mig)
 
 ### Goals of this fork
 
-This is a restructured and modified fork of https://github.com/pressly/goose
-which includes many necessary bug fixes and general improvements to
-better suit the Go abcweb framework https://github.com/nullbio/abcweb --
-although feel free to use this migration tool as a standalone or in your own 
-projects even if you do not use abcweb, it by no means requires it.
+To provide a highly effective MySQL migration.
 
 # Install
 
-    $ go get -u github.com/volatiletech/mig/...
+    $ go get -u github.com/satriahrh/mig/...
 
 # Usage
 
 ```
-mig is a database migration tool for Postgres and MySQL.
+mig is a database migration tool for MySQL.
 
 Usage:
   mig [command]
 
 Examples:
-mig up postgres "user=postgres dbname=postgres sslmode=disable"
-mig down mysql "user:password@/dbname"
-mig create add_users
+$ mig up user:password@tcp(localhost:5555)/dbname?tls=skip-verify&autocommit=true
+$ mig down "user:password@tcp(localhost:5555)/dbname?tls=skip-verify&autocommit=true"
+$ mig create add_users
 
 Available Commands:
   create      Create a blank migration template
@@ -49,16 +44,11 @@ Flags:
 Use "mig [command] --help" for more information about a command.
 ```
 
-Note: If you're using [ABCWeb](https://github.com/volatiletech/abcweb) the `mig`
-commands are built into the `abcweb` tool. See `abcweb --help` for usage.
-
 ## Supported Databases
 
-mig supports MySQL and Postgres. The drivers used are:
+mig supports MySQL. The drivers used are:
 
 https://github.com/go-sql-driver/mysql
-
-https://github.com/lib/pq
 
 See these drivers for details on the format of their connection strings.
 
