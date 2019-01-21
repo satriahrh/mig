@@ -3,16 +3,16 @@ package main
 import (
 	"fmt"
 
+	"github.com/satriahrh/mig"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/volatiletech/mig"
 )
 
 var statusCmd = &cobra.Command{
 	Use:     "status",
 	Short:   "Dump the migration status for the database",
 	Long:    "Dump the migration status for the database",
-	Example: `mig status postgres "user=postgres dbname=postgres sslmode=disable"`,
+	Example: `$ mig status "user:password@tcp(localhost:5555)/dbname?tls=skip-verify&autocommit=true"`,
 	RunE:    statusRunE,
 }
 
@@ -27,18 +27,18 @@ func init() {
 }
 
 func statusRunE(cmd *cobra.Command, args []string) error {
-	driver, conn, err := getConnArgs(args)
+	conn, err := getConnArgs(args)
 	if err != nil {
 		return err
 	}
 
-	status, err := mig.Status(driver, conn, viper.GetString("dir"))
+	status, err := mig.Status(conn, viper.GetString("dir"))
 	if err != nil {
 		return err
 	}
 
 	if len(status) == 0 {
-		fmt.Printf("No migrations applied")
+		fmt.Println("No migrations applied")
 		return nil
 	}
 

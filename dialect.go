@@ -2,8 +2,6 @@ package mig
 
 import (
 	"database/sql"
-	"fmt"
-	"os"
 )
 
 // sqlDialect abstracts the details of specific SQL dialects
@@ -14,7 +12,7 @@ type sqlDialect interface {
 	versionQuery(db *sql.DB) (*sql.Rows, error)
 }
 
-var dialect sqlDialect = &postgresDialect{}
+var dialect sqlDialect = &mySQLDialect{}
 
 func getDialect() sqlDialect {
 	return dialect
@@ -22,53 +20,19 @@ func getDialect() sqlDialect {
 
 // SetDialect sets the current driver dialect for all future calls
 // to the library.
-func SetDialect(d string) error {
-	return setDialect(d)
-}
-
-func setDialect(d string) error {
-	switch d {
-	case "postgres":
-		dialect = &postgresDialect{}
-	case "mysql":
-		dialect = &mySQLDialect{}
-	case "sqlite3":
-		fmt.Println("sqlite3 not supported")
-		os.Exit(1)
-		//dialect = &sqlite3Dialect{}
-	default:
-		return fmt.Errorf("%q: unknown dialect", d)
-	}
-
+func SetDialect() error {
+	dialect = &mySQLDialect{}
 	return nil
 }
 
-type postgresDialect struct{}
+// SetDialect sets the current driver dialect for all future calls
+// to the library.
+func setDialect() error {
+	dialect = &mySQLDialect{}
+	return nil
+}
+
 type mySQLDialect struct{}
-type sqlite3Dialect struct{}
-
-func (postgresDialect) createVersionTableSQL() string {
-	return `CREATE TABLE mig_migrations (
-            	id serial NOT NULL,
-                version_id bigint NOT NULL,
-                is_applied boolean NOT NULL,
-                tstamp timestamp NULL default now(),
-                PRIMARY KEY(id)
-            );`
-}
-
-func (postgresDialect) insertVersionSQL() string {
-	return "INSERT INTO mig_migrations (version_id, is_applied) VALUES ($1, $2);"
-}
-
-func (postgresDialect) versionQuery(db *sql.DB) (*sql.Rows, error) {
-	rows, err := db.Query("SELECT version_id, is_applied from mig_migrations ORDER BY id DESC")
-	if err != nil {
-		return nil, err
-	}
-
-	return rows, err
-}
 
 func (mySQLDialect) createVersionTableSQL() string {
 	return `CREATE TABLE mig_migrations (
@@ -85,28 +49,6 @@ func (mySQLDialect) insertVersionSQL() string {
 }
 
 func (mySQLDialect) versionQuery(db *sql.DB) (*sql.Rows, error) {
-	rows, err := db.Query("SELECT version_id, is_applied from mig_migrations ORDER BY id DESC")
-	if err != nil {
-		return nil, err
-	}
-
-	return rows, err
-}
-
-func (sqlite3Dialect) createVersionTableSQL() string {
-	return `CREATE TABLE mig_migrations (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                version_id INTEGER NOT NULL,
-                is_applied INTEGER NOT NULL,
-                tstamp TIMESTAMP DEFAULT (datetime('now'))
-            );`
-}
-
-func (sqlite3Dialect) insertVersionSQL() string {
-	return "INSERT INTO mig_migrations (version_id, is_applied) VALUES (?, ?);"
-}
-
-func (sqlite3Dialect) versionQuery(db *sql.DB) (*sql.Rows, error) {
 	rows, err := db.Query("SELECT version_id, is_applied from mig_migrations ORDER BY id DESC")
 	if err != nil {
 		return nil, err

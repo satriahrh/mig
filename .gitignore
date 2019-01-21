@@ -1,4 +1,4 @@
-.DS_Store
 cmd/mig/mig
 *.swp
 *.test
+vendor/*

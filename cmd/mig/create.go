@@ -4,16 +4,16 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/satriahrh/mig"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/volatiletech/mig"
 )
 
 var createCmd = &cobra.Command{
 	Use:     "create",
 	Short:   "Create a blank migration template",
 	Long:    "Create a blank migration template",
-	Example: `mig create add_users`,
+	Example: `$ mig create add_users`,
 	RunE:    createRunE,
 }
 
@@ -36,7 +36,7 @@ func createRunE(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Println(fmt.Sprintf("Created %s", path))
+	fmt.Printf("Created %s\n", path)
 
 	return nil
 }

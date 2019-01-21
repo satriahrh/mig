@@ -9,8 +9,6 @@ import (
 
 	// mysql driver
 	_ "github.com/go-sql-driver/mysql"
-	// postgres driver
-	_ "github.com/lib/pq"
 )
 
 // Create a templated migration file in dir
@@ -26,13 +24,13 @@ func Create(name, dir string) (string, error) {
 }
 
 // Down rolls back the version by one
-func Down(driver, conn, dir string) (name string, err error) {
-	db, err := sql.Open(driver, conn)
+func Down(conn, dir string) (name string, err error) {
+	db, err := sql.Open("mysql", conn)
 	if err != nil {
 		return "", err
 	}
 
-	err = setDialect(driver)
+	err = setDialect()
 	if err != nil {
 		return "", err
 	}
@@ -63,13 +61,13 @@ func DownDB(db *sql.DB, dir string) (name string, err error) {
 
 // DownAll rolls back all migrations.
 // Logs success messages to global writer variable Log.
-func DownAll(driver, conn, dir string) (int, error) {
-	db, err := sql.Open(driver, conn)
+func DownAll(conn, dir string) (int, error) {
+	db, err := sql.Open("mysql", conn)
 	if err != nil {
 		return 0, err
 	}
 
-	err = setDialect(driver)
+	err = setDialect()
 	if err != nil {
 		return 0, err
 	}
@@ -111,13 +109,13 @@ func DownAllDB(db *sql.DB, dir string) (int, error) {
 }
 
 // Up migrates to the highest version available
-func Up(driver, conn, dir string) (int, error) {
-	db, err := sql.Open(driver, conn)
+func Up(conn, dir string) (int, error) {
+	db, err := sql.Open("mysql", conn)
 	if err != nil {
 		return 0, err
 	}
 
-	err = setDialect(driver)
+	err = setDialect()
 	if err != nil {
 		return 0, err
 	}
@@ -158,13 +156,13 @@ func UpDB(db *sql.DB, dir string) (int, error) {
 }
 
 // UpOne migrates one version
-func UpOne(driver, conn, dir string) (name string, err error) {
-	db, err := sql.Open(driver, conn)
+func UpOne(conn, dir string) (name string, err error) {
+	db, err := sql.Open("mysql", conn)
 	if err != nil {
 		return "", err
 	}
 
-	err = setDialect(driver)
+	err = setDialect()
 	if err != nil {
 		return "", err
 	}
@@ -194,13 +192,13 @@ func UpOneDB(db *sql.DB, dir string) (name string, err error) {
 }
 
 // Redo re-runs the latest migration.
-func Redo(driver, conn, dir string) (string, error) {
-	db, err := sql.Open(driver, conn)
+func Redo(conn, dir string) (string, error) {
+	db, err := sql.Open("mysql", conn)
 	if err != nil {
 		return "", err
 	}
 
-	err = setDialect(driver)
+	err = setDialect()
 	if err != nil {
 		return "", err
 	}
@@ -242,15 +240,15 @@ type migrationStatus struct {
 type status []migrationStatus
 
 // Status returns the status of each migration
-func Status(driver, conn, dir string) (status, error) {
+func Status(conn, dir string) (status, error) {
 	s := status{}
 
-	db, err := sql.Open(driver, conn)
+	db, err := sql.Open("mysql", conn)
 	if err != nil {
 		return s, err
 	}
 
-	err = setDialect(driver)
+	err = setDialect()
 	if err != nil {
 		return s, err
 	}
@@ -284,13 +282,13 @@ func StatusDB(db *sql.DB, dir string) (status, error) {
 }
 
 // Version returns the current migration version
-func Version(driver, conn string) (int64, error) {
-	db, err := sql.Open(driver, conn)
+func Version(conn string) (int64, error) {
+	db, err := sql.Open("mysql", conn)
 	if err != nil {
 		return 0, err
 	}
 
-	err = setDialect(driver)
+	err = setDialect()
 	if err != nil {
 		return 0, err
 	}

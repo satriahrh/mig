@@ -3,16 +3,16 @@ package main
 import (
 	"fmt"
 
+	"github.com/satriahrh/mig"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/volatiletech/mig"
 )
 
 var versionCmd = &cobra.Command{
 	Use:     "version",
 	Short:   "Print the current version of the database",
 	Long:    "Print the current version of the database",
-	Example: `mig version postgres "user=postgres dbname=postgres sslmode=disable"`,
+	Example: `$ mig version "user:password@tcp(localhost:5555)/dbname?tls=skip-verify&autocommit=true"`,
 	RunE:    versionRunE,
 }
 
@@ -24,18 +24,18 @@ func init() {
 }
 
 func versionRunE(cmd *cobra.Command, args []string) error {
-	driver, conn, err := getConnArgs(args)
+	conn, err := getConnArgs(args)
 	if err != nil {
 		return err
 	}
 
-	version, err := mig.Version(driver, conn)
+	version, err := mig.Version(conn)
 	if err != nil {
 		return err
 	}
 
 	if version == 0 {
-		fmt.Printf("No migrations applied")
+		fmt.Println("No migrations applied")
 	} else {
 		fmt.Printf("Version %d\n", version)
 	}

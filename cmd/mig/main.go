@@ -11,7 +11,7 @@ func main() {
 	// Too much happens between here and cobra's argument handling, for
 	// something so simple. Just do it immediately.
 	if len(os.Args) > 1 && os.Args[1] == "--version" {
-		fmt.Println("mig v" + migVersion)
+		fmt.Printf("mig v%v\n", migVersion)
 		return
 	}
 
