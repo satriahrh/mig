@@ -12,10 +12,13 @@ import (
 )
 
 var (
+	// ErrNoCurrentVersion no current version
 	ErrNoCurrentVersion = errors.New("no current version found")
-	ErrNoNextVersion    = errors.New("no next version found")
+	// ErrNoNextVersion no next version
+	ErrNoNextVersion = errors.New("no next version found")
 )
 
+// Log log progress
 var Log io.Writer
 
 func init() {
@@ -192,14 +195,14 @@ func getVersion(db *sql.DB) (int64, error) {
 
 	for rows.Next() {
 		var row migrationRecord
-		if err = rows.Scan(&row.versionId, &row.isApplied); err != nil {
+		if err = rows.Scan(&row.versionID, &row.isApplied); err != nil {
 			return 0, fmt.Errorf("error scanning rows: %s", err)
 		}
 
 		// have we already marked this version to be skipped?
 		skip := false
 		for _, v := range toSkip {
-			if v == row.versionId {
+			if v == row.versionID {
 				skip = true
 				break
 			}
@@ -211,11 +214,11 @@ func getVersion(db *sql.DB) (int64, error) {
 
 		// if version has been applied we're done
 		if row.isApplied {
-			return row.versionId, nil
+			return row.versionID, nil
 		}
 
 		// latest version of migration has not been applied.
-		toSkip = append(toSkip, row.versionId)
+		toSkip = append(toSkip, row.versionID)
 	}
 
 	panic("unreachable")

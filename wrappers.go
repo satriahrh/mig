@@ -231,17 +231,15 @@ func RedoDB(db *sql.DB, dir string) (string, error) {
 	return current.up(db)
 }
 
-type migrationStatus struct {
+// MigrationStatus show the status of the migration
+type MigrationStatus struct {
 	Applied string
 	Name    string
 }
 
-// status is a slice of migrationStatus
-type status []migrationStatus
-
 // Status returns the status of each migration
-func Status(conn, dir string) (status, error) {
-	s := status{}
+func Status(conn, dir string) ([]MigrationStatus, error) {
+	s := []MigrationStatus{}
 
 	db, err := sql.Open("mysql", conn)
 	if err != nil {
@@ -258,8 +256,8 @@ func Status(conn, dir string) (status, error) {
 
 // StatusDB returns the status of each migration
 // Expects SetDialect to be called beforehand
-func StatusDB(db *sql.DB, dir string) (status, error) {
-	s := status{}
+func StatusDB(db *sql.DB, dir string) ([]MigrationStatus, error) {
+	s := []MigrationStatus{}
 
 	migrations, err := collectMigrations(dir, 0, math.MaxInt64)
 	if err != nil {
@@ -272,7 +270,7 @@ func StatusDB(db *sql.DB, dir string) (status, error) {
 	}
 
 	for _, migration := range migrations {
-		s = append(s, migrationStatus{
+		s = append(s, MigrationStatus{
 			Applied: getMigrationStatus(db, migration.version),
 			Name:    filepath.Base(migration.source),
 		})
