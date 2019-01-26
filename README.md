@@ -22,7 +22,7 @@ Usage:
   mig [command]
 
 Examples:
-$ mig up user:password@tcp(localhost:5555)/dbname?tls=skip-verify&autocommit=true
+$ mig up "user:password@tcp(localhost:5555)/dbname?tls=skip-verify&autocommit=true"
 $ mig down "user:password@tcp(localhost:5555)/dbname?tls=skip-verify&autocommit=true"
 $ mig create add_users
 
