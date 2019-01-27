@@ -1,13 +1,13 @@
 # mig
 
-mig is a database migration tool. Manage your database's evolution by creating incremental SQL files. Forked from [volatiletech/mig](https://github.com/volatiletech/mig)
+mig by [@satriahrh](https://github.com/satriahrh) is a database migration tool forked from [volatiletech/mig](https://github.com/volatiletech/mig). Manage your database's evolution by creating incremental SQL files.
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/satriahrh/mig/blob/master/LICENSE)
 [![Go Report Card](https://goreportcard.com/badge/satriahrh/mig)](http://goreportcard.com/report/satriahrh/mig)
 
 ### Goals of this fork
 
-To provide a highly effective MySQL migration.
+To provide a highly effective MySQL migration according to my needs. You can watch my development progress on the [project tab](https://github.com/satriahrh/mig/projects) and please do help me too if you think it is worth enough to your life.
 
 # Install
 
