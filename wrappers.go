@@ -3,12 +3,10 @@ package mig
 import (
 	"database/sql"
 	"fmt"
+	"github.com/go-sql-driver/mysql"
 	"math"
 	"path/filepath"
 	"time"
-
-	// mysql driver
-	_ "github.com/go-sql-driver/mysql"
 )
 
 // Create a templated migration file in dir
@@ -25,7 +23,7 @@ func Create(name, dir string) (string, error) {
 
 // Down rolls back the version by one
 func Down(conn, dir string) (name string, err error) {
-	db, err := sql.Open("mysql", conn)
+	db, err := getDB(conn)
 	if err != nil {
 		return "", err
 	}
@@ -62,7 +60,7 @@ func DownDB(db *sql.DB, dir string) (name string, err error) {
 // DownAll rolls back all migrations.
 // Logs success messages to global writer variable Log.
 func DownAll(conn, dir string) (int, error) {
-	db, err := sql.Open("mysql", conn)
+	db, err := getDB(conn)
 	if err != nil {
 		return 0, err
 	}
@@ -110,7 +108,7 @@ func DownAllDB(db *sql.DB, dir string) (int, error) {
 
 // Up migrates to the highest version available
 func Up(conn, dir string) (int, error) {
-	db, err := sql.Open("mysql", conn)
+	db, err := getDB(conn)
 	if err != nil {
 		return 0, err
 	}
@@ -157,7 +155,7 @@ func UpDB(db *sql.DB, dir string) (int, error) {
 
 // UpOne migrates one version
 func UpOne(conn, dir string) (name string, err error) {
-	db, err := sql.Open("mysql", conn)
+	db, err := getDB(conn)
 	if err != nil {
 		return "", err
 	}
@@ -193,7 +191,7 @@ func UpOneDB(db *sql.DB, dir string) (name string, err error) {
 
 // Redo re-runs the latest migration.
 func Redo(conn, dir string) (string, error) {
-	db, err := sql.Open("mysql", conn)
+	db, err := getDB(conn)
 	if err != nil {
 		return "", err
 	}
@@ -241,7 +239,7 @@ type MigrationStatus struct {
 func Status(conn, dir string) ([]MigrationStatus, error) {
 	s := []MigrationStatus{}
 
-	db, err := sql.Open("mysql", conn)
+	db, err := getDB(conn)
 	if err != nil {
 		return s, err
 	}
@@ -281,7 +279,7 @@ func StatusDB(db *sql.DB, dir string) ([]MigrationStatus, error) {
 
 // Version returns the current migration version
 func Version(conn string) (int64, error) {
-	db, err := sql.Open("mysql", conn)
+	db, err := getDB(conn)
 	if err != nil {
 		return 0, err
 	}
@@ -298,4 +296,17 @@ func Version(conn string) (int64, error) {
 // Expects SetDialect to be called beforehand
 func VersionDB(db *sql.DB) (int64, error) {
 	return getVersion(db)
+}
+
+// getDB returns db using sql.Open
+// This is to enable hard coding the DSN Config
+func getDB(conn string) (*sql.DB, error) {
+	// TODO conn should be named as dataSourceName or dsn or something
+	cfg, err := mysql.ParseDSN(conn)
+	if err != nil {
+		return nil, err
+	}
+
+	cfg.ParseTime = true
+	return sql.Open("mysql", cfg.FormatDSN())
 }
