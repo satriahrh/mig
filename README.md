@@ -70,7 +70,7 @@ An example command run:
 
 Apply all available migrations.
 
-    $ mig up postgres "user=username password=password dbname=database"
+    $ mig up "user:password@tcp(localhost:5555)/dbname?tls=skip-verify&autocommit=true"
 	$ Success   20170314220650_add_dogs.sql
 	$ Success   20170314221501_add_cats.sql
 	$ Success   2 migrations
